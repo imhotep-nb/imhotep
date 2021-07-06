@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"gonum.org/v1/gonum/diff/fd"
 	"gonum.org/v1/gonum/optimize"
@@ -47,8 +48,13 @@ func main() {
 		Grad: gradObjetivo,
 	}
 
-	x2 := []float64{10, 100}
-	result2, err2 := optimize.Minimize(p2, x2, nil, nil)
+	x2 := []float64{0, 0}
+	settings := optimize.Settings{GradientThreshold: 0.01}
+	time1 := time.Now()
+	result2, err2 := optimize.Minimize(p2, x2, &settings, nil)
+	time2 := time.Now()
+	duracion := time2.UnixNano() - time1.UnixNano()
+	fmt.Printf("La duración fue de %v ns\n", duracion)
 	if err2 != nil {
 		log.Fatal(err2)
 	}
