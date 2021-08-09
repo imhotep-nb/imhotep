@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/antonmedv/expr/vm"
 	"github.com/imhotep-nb/units/quantity"
 )
 
@@ -22,19 +23,28 @@ type Variable struct {
 				- MPa (kg.m-1.s-2): [-1 1 0 0 0 0 0 0 0 0 -2]
 		solved: Define if the variable is determinated
 	*/
-	name           string
-	guess          float64
-	upperlim       float64
-	lowerlim       float64
-	comment        string
-	unit           quantity.Unit
-	dimensionality []int8
-	solved         bool
+	Name           string
+	Guess          float64
+	Upperlim       float64
+	Lowerlim       float64
+	Comment        string
+	Unit           quantity.Unit
+	Dimensionality []int8
+	Solved         bool
 }
 
 type Equation struct {
-	index uint16
-	line  uint16
-	text  string
-	vars  []*Variable
+	/*
+		index: Equation number in the order that were writed inside
+			equations box.
+		line: Equation line number of the text writed inside equations box.
+		text: Equation text writed by user.
+		exec: expr compiled program from equation text.
+		vars: pointers's slice to variables
+	*/
+	Index uint16
+	Line  uint16
+	Text  string
+	Exec  vm.Program
+	Vars  []*Variable
 }
