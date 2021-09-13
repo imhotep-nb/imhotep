@@ -2,4 +2,7 @@ module imhotep
 
 go 1.16
 
-require github.com/zn8nz/units v0.0.0-20160925111904-17b8189dc705 // indirect
+require (
+	github.com/antonmedv/expr v1.8.9
+	github.com/imhotep-nb/units/quantity v0.0.0-20210720031549-eca654f75b2e
+)
