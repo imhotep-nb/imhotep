@@ -1,6 +1,10 @@
 package types
 
 import (
+	"log"
+	"math"
+
+	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
 	"github.com/imhotep-nb/units/quantity"
 )
@@ -45,6 +49,30 @@ type Equation struct {
 	Index uint16
 	Line  uint16
 	Text  string
-	Exec  vm.Program
+	Exec  *vm.Program
+	Env   map[string]interface{}
 	Vars  []*Variable
+}
+
+func (e *Equation) UpdateEnv() {
+	/*
+		Update guesses from variables in the environment
+	*/
+	for _, v := range e.Vars {
+		e.Env[v.Name] = v.Guess
+	}
+}
+
+func (e *Equation) RunProgram() (float64, error) {
+	/*
+		Run the program to evaluate the equation
+	*/
+	e.UpdateEnv()
+	output, err := expr.Run(e.Exec, e.Env)
+	if err != nil {
+		log.Printf("%v", err)
+		return math.NaN(), err
+	} else {
+		return output.(float64), nil
+	}
 }

@@ -7,6 +7,7 @@ import (
 
 	"log"
 
+	"github.com/antonmedv/expr"
 	"github.com/imhotep-nb/units/quantity"
 )
 
@@ -89,4 +90,33 @@ func NewVariable(Name string, Guess *float64, Upperlim *float64, Lowerlim *float
 
 	return &newVar, nil
 
+}
+
+func NewEquation(EquationText string, Vars []*types.Variable,
+	Index uint16, Line uint16) (*types.Equation, error) {
+	var err error
+	if EquationText == "" {
+		err = errors.New("The equation has to have a text")
+		log.Printf("%v", err)
+		return nil, err
+	}
+	env := map[string]interface{}{
+		"cos": math.Cos,
+		"tan": math.Tan,
+		"sin": math.Sin,
+	}
+	newEqn := types.Equation{
+		Vars: Vars,
+		Text: EquationText,
+		Env:  env,
+	}
+	newEqn.UpdateEnv()
+	program, err2 := expr.Compile(EquationText, expr.Env(env),
+		expr.AsFloat64())
+	if err2 != nil {
+		log.Printf("%v", err)
+		return nil, err2
+	}
+	newEqn.Exec = program
+	return &newEqn, nil
 }
