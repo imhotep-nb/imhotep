@@ -11,7 +11,7 @@ func main() {
 
 	Vars := []*types.Variable{}
 	Eqns := []*types.Equation{}
-	_, err := parsers.ParseText("/home/devgtc/texto", &Vars, &Eqns)
+	_, err := parsers.ParseText("./testing/texto.json", &Vars, &Eqns)
 	if err != nil {
 		log.Printf("Something fails: %v", err)
 		return

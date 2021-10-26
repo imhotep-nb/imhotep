@@ -1,6 +1,8 @@
 package parsers
 
 import (
+	"encoding/json"
+	"errors"
 	"imhotep/constructors"
 	"imhotep/types"
 	"io/ioutil"
@@ -13,16 +15,16 @@ func ParseText(File string, Vars *[]*types.Variable,
 	/*
 	   This function parse a file text string to a
 	*/
+	var input types.APIInput
 	buf, err := ioutil.ReadFile(File)
+
 	if err != nil {
 		log.Printf("%v", err)
 		return false, err
 	}
-	// s it's the string with the contents of file
-	s := string(buf)
-	// Separete in lines
-	s = strings.ReplaceAll(s, "\r", "")
-	v := strings.Split(s, "\n")
+
+	json.Unmarshal(buf, &input)
+
 	// Reset Vars and Equations
 	*Vars = []*types.Variable{}
 	*Eqns = []*types.Equation{}
@@ -34,9 +36,9 @@ func ParseText(File string, Vars *[]*types.Variable,
 	// varsR: Variables to replace to "-", for
 	// variables extraction
 	varsR := []string{"(", "+", "*", "-", ")"}
-	lineCopy := make([]string, len(v))
-	copy(lineCopy, v)
-	for i, line := range v {
+	lineCopy := make([]string, len(input.Equations))
+	copy(lineCopy, input.Equations)
+	for i, line := range input.Equations {
 		// Clear spaces
 		if line != "" {
 			tempLine = lineCopy[i]
@@ -70,15 +72,41 @@ func ParseText(File string, Vars *[]*types.Variable,
 			}
 		}
 	}
+
+	if len(varsS) != len(input.Equations) {
+		err = errors.New("mismatch number equations with variables")
+		// TODO give variables and equations numbers
+		log.Printf("%v", err)
+		return false, err
+	}
+
 	// For for generate variable structs:
-	for _, varS := range varsS {
-		guess := 0.0
-		lowerlim := -100.0
-		upperlim := 100.0
-		comment := ""
-		newVar, err := constructors.NewVariable(varS, &guess, &upperlim, &lowerlim, &comment, nil)
+	for _, varJSON := range input.Variables {
+
+		// validate if the varJSON exits in the identified variables in the equations (varsS)
+		var existVar = false
+		for _, varS := range varsS {
+			if varS == varJSON.Name {
+				existVar = true
+				break
+			}
+		}
+
+		if !existVar {
+			err = errors.New("variables in JSON mismatch with variables in equations")
+			// TODO give variables names from JSON and from equations
+			log.Printf("%v", err)
+			return false, err
+		}
+
+		guess := varJSON.Guess
+		lowerlim := varJSON.Lowerlim
+		upperlim := varJSON.Upperlim
+		comment := varJSON.Comment
+		unit := varJSON.Unit
+		newVar, err := constructors.NewVariable(varJSON.Name, &guess, &upperlim, &lowerlim, &comment, &unit)
 		if err != nil {
-			log.Printf("Error in variable creation %v: %v", varS, err)
+			log.Printf("Error in variable creation %v: %v", varJSON.Name, err)
 			// &Vars = *[]*types.Variable{}
 			// &Eqns = *[]*types.Equation{}
 			return false, nil
@@ -86,7 +114,7 @@ func ParseText(File string, Vars *[]*types.Variable,
 		*Vars = append(*Vars, newVar)
 	}
 	// For every line,create a equation
-	for i, line := range v {
+	for i, line := range input.Equations {
 		if line != "" {
 			log.Printf("The equation is: %v", line)
 			newEq, err2 := constructors.NewEquation(line, *Vars, uint16(i), uint16(i))

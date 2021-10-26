@@ -66,7 +66,7 @@ func NewVariable(Name string, Guess *float64, Upperlim *float64, Lowerlim *float
 
 	var tempUnit quantity.Quantity
 
-	if Unit == nil {
+	if Unit == nil || *Unit == "" {
 		tempUnit, err = quantity.ParseSymbol("m/m")
 
 	} else {

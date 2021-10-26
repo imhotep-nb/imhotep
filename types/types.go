@@ -9,6 +9,26 @@ import (
 	"github.com/imhotep-nb/units/quantity"
 )
 
+type APIInput struct {
+	/*
+		Parse variables and Equations data from API in JSON format
+	*/
+	Equations []string       `json:"eqns"`
+	Variables []VariableJSON `json:"vars"`
+}
+
+type VariableJSON struct {
+	/*
+		Parse variables data from API in JSON format
+	*/
+	Name     string  `json:"name"`
+	Guess    float64 `json:"guess"`
+	Upperlim float64 `json:"upperlim"`
+	Lowerlim float64 `json:"lowerlim"`
+	Comment  string  `json:"comment"`
+	Unit     string  `json:"unit"`
+}
+
 type Variable struct {
 	/*
 		name: Name of variable eg: x
