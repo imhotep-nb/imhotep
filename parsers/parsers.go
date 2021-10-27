@@ -7,7 +7,10 @@ import (
 	"imhotep/types"
 	"io/ioutil"
 	"log"
+	"regexp"
 	"strings"
+
+	"github.com/imhotep-nb/units/quantity"
 )
 
 func ParseText(File string, Vars *[]*types.Variable,
@@ -42,6 +45,17 @@ func ParseText(File string, Vars *[]*types.Variable,
 		// Clear spaces
 		if line != "" {
 			tempLine = lineCopy[i]
+
+			// Remove all explicit units in eqns to avoid that the parse
+			// identify those like variables
+			unitsRegex := regexp.MustCompile(`\[(.*?)\]`)
+			tempLine = unitsRegex.ReplaceAllString(tempLine, "")
+
+			if err != nil {
+				log.Printf("Can't parse units: %v\n", err)
+				return false, err
+			}
+
 			for _, varD := range varsD {
 				tempLine = strings.ReplaceAll(tempLine, varD, "")
 				line = strings.ReplaceAll(line, varD, "")
@@ -116,6 +130,15 @@ func ParseText(File string, Vars *[]*types.Variable,
 	// For every line,create a equation
 	for i, line := range input.Equations {
 		if line != "" {
+
+			// Replace explicit units with conversion factors to SI
+			line, err := parseExplicitUnits(line)
+
+			if err != nil {
+				log.Printf("Can't parse units: %v\n", err)
+				return false, err
+			}
+
 			log.Printf("The equation is: %v", line)
 			newEq, err2 := constructors.NewEquation(line, *Vars, uint16(i), uint16(i))
 			if err2 != nil {
@@ -126,4 +149,57 @@ func ParseText(File string, Vars *[]*types.Variable,
 		}
 	}
 	return true, nil
+}
+
+func parseExplicitUnits(eqnText string) (string, error) {
+	/*
+	   This function parse a string (like a equation string)  using a regex to identify
+	   all explicit units, after that use quantity symbol parse to convert the unit to SI
+	   and finally replace each explicit unit in the text for the conversión factor to SI
+
+	   Example:
+
+	   input: "x + y - 10[ft] = 50[ft]"
+	   output: "x + y - 10*0.304800 = 50*0.304800
+	*/
+	newEqnText := eqnText
+
+	unitsRegex := regexp.MustCompile(`\[(.*?)\]`)
+	unitsInEqn := unitsRegex.FindAllString(eqnText, -1)
+
+	unitsUniques := make(map[string]bool)
+	for _, unitText := range unitsInEqn {
+
+		// Check that is a new unit
+		if !unitsUniques[unitText] {
+
+			// Remove square brackets []
+			unitClear := strings.ReplaceAll(unitText, "[", "")
+			unitClear = strings.ReplaceAll(unitClear, "]", "")
+
+			// Parse unit and check that is a valit one.
+			unitIdentify, err := quantity.ParseSymbol(unitClear)
+
+			if err != nil {
+				log.Printf("The unit %v can't be identify: %v\n", unitText, err)
+				return "", err
+
+			} else {
+
+				// Get factor conversion in string format to replace it in the eqns.
+				// Maybe in some point will be necesary control the precision of the
+				// format conversión, at the moment is by default
+				converFactor := unitIdentify.ToSI().Format("%[1]f")
+				newEqnText = strings.ReplaceAll(newEqnText, unitText, "*"+converFactor)
+
+				// Save that unit to avoid repeat the process
+				unitsUniques[unitText] = true
+			}
+		}
+	}
+
+	log.Printf("Equation with units parsed: %v", newEqnText)
+
+	return newEqnText, nil
+
 }

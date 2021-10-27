@@ -52,7 +52,7 @@ type Variable struct {
 	Upperlim       float64
 	Lowerlim       float64
 	Comment        string
-	Unit           quantity.Unit
+	Unit           quantity.Quantity
 	Dimensionality []int8
 	Solved         bool
 }
@@ -79,7 +79,8 @@ func (e *Equation) UpdateEnv() {
 		Update guesses from variables in the environment
 	*/
 	for _, v := range e.Vars {
-		e.Env[v.Name] = v.Guess
+		// Equations system are evaluated in SI
+		e.Env[v.Name] = v.Guess * v.Unit.ToSI().Value()
 	}
 }
 

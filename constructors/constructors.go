@@ -78,7 +78,7 @@ func NewVariable(Name string, Guess *float64, Upperlim *float64, Lowerlim *float
 		return nil, err
 
 	} else {
-		newVar.Unit = *tempUnit.Unit
+		newVar.Unit = tempUnit
 		newVar.Dimensionality = tempUnit.Dimensionality()
 	}
 
