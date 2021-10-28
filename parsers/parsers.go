@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/imhotep-nb/units/quantity"
@@ -187,9 +188,8 @@ func parseExplicitUnits(eqnText string) (string, error) {
 			} else {
 
 				// Get factor conversion in string format to replace it in the eqns.
-				// Maybe in some point will be necesary control the precision of the
-				// format conversión, at the moment is by default
-				converFactor := unitIdentify.ToSI().Format("%[1]f")
+				valueSI := unitIdentify.ToSI().Value()
+				converFactor := strconv.FormatFloat(valueSI, 'e', -1, 64)
 				newEqnText = strings.ReplaceAll(newEqnText, unitText, "*"+converFactor)
 
 				// Save that unit to avoid repeat the process
