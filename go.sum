@@ -7,6 +7,8 @@ github.com/gdamore/encoding v1.0.0/go.mod h1:alR0ol34c49FCSBLjhosxzcPHQbf2trDkoo
 github.com/gdamore/tcell v1.3.0/go.mod h1:Hjvr+Ofd+gLglo7RYKxxnzCBmev3BzsS67MebKS4zMM=
 github.com/imhotep-nb/units/quantity v0.0.0-20210720031549-eca654f75b2e h1:4z9yc1N42sAMiuOzltaGusEUjy1+9NjTX6qG3YefjK4=
 github.com/imhotep-nb/units/quantity v0.0.0-20210720031549-eca654f75b2e/go.mod h1:oFysCyFyy5qvEMWP9+U5YvCoa3wLX4tDXe9FiaM499s=
+github.com/imhotep-nb/units/quantity v0.0.0-20211028164358-1c2c90e6056f h1:jtIAnqmqo4Gd9dQVtrI1CQYeHbJl6CNzYPS8aFyh8rI=
+github.com/imhotep-nb/units/quantity v0.0.0-20211028164358-1c2c90e6056f/go.mod h1:oFysCyFyy5qvEMWP9+U5YvCoa3wLX4tDXe9FiaM499s=
 github.com/lucasb-eyer/go-colorful v1.0.2/go.mod h1:0MS4r+7BZKSJ5mw4/S5MPN+qHFF1fYclkSPilDOKW0s=
 github.com/lucasb-eyer/go-colorful v1.0.3/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/mattn/go-runewidth v0.0.4/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=

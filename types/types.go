@@ -21,8 +21,9 @@ type EquationJSON struct {
 	/*
 		Parse equations data from API in JSON format
 	*/
-	Text string `json:"text"`
-	Line int    `json:"Line"`
+	Text            string `json:"text"`
+	Line            int    `json:"Line"`
+	UnitsParsedText string
 }
 
 type VariableJSON struct {

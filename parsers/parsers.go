@@ -29,6 +29,36 @@ func ParseText(File string, Vars *[]*types.Variable,
 
 	json.Unmarshal(buf, &input)
 
+	// It need replace explicit units with conversion factors in SI
+	// so concatenate eqn to replace the whole units at the same time.
+	// Use a equations separator to concat it; the only requeriment is that
+	// there is no risk that the separator could be in the eqn.
+	concatEgns := ""
+	eqnSeparator := "@@&##&@@##"
+	nEqns := len(input.Equations)
+	for i, line := range input.Equations {
+
+		if i != (nEqns - 1) {
+			concatEgns += line.Text + eqnSeparator
+		}
+
+	}
+
+	// Replace explicit units with conversion factors to SI
+	concatEqnsParsed, err := parseExplicitUnits(concatEgns)
+	var unitsParsedTexts []string
+	if err != nil {
+		log.Printf("Can't parse units: %v\n", err)
+		return false, err
+	} else {
+		unitsParsedTexts = strings.Split(concatEqnsParsed, eqnSeparator)
+
+	}
+
+	for i, line := range unitsParsedTexts {
+		input.Equations[i].UnitsParsedText = line
+	}
+
 	// Reset Vars and Equations
 	*Vars = []*types.Variable{}
 	*Eqns = []*types.Equation{}
@@ -40,26 +70,17 @@ func ParseText(File string, Vars *[]*types.Variable,
 	// varsR: Variables to replace to "-", for
 	// variables extraction
 	varsR := []string{"(", "+", "*", "-", ")"}
-	lineCopy := make([]types.EquationJSON, len(input.Equations))
+	lineCopy := make([]types.EquationJSON, nEqns)
 	copy(lineCopy, input.Equations)
 	for i, line := range input.Equations {
 		// Clear spaces
-		if line.Text != "" {
-			tempLine = lineCopy[i].Text
+		if line.UnitsParsedText != "" {
 
-			// Remove all explicit units in eqns to avoid that the parse
-			// identify those like variables
-			unitsRegex := regexp.MustCompile(`\[(.*?)\]`)
-			tempLine = unitsRegex.ReplaceAllString(tempLine, "")
-
-			if err != nil {
-				log.Printf("Can't parse units: %v\n", err)
-				return false, err
-			}
+			tempLine = lineCopy[i].UnitsParsedText
 
 			for _, varD := range varsD {
 				tempLine = strings.ReplaceAll(tempLine, varD, "")
-				line.Text = strings.ReplaceAll(line.Text, varD, "")
+				line.UnitsParsedText = strings.ReplaceAll(line.UnitsParsedText, varD, "")
 			}
 			// Put "-"
 			for _, varR := range varsR {
@@ -88,11 +109,12 @@ func ParseText(File string, Vars *[]*types.Variable,
 		}
 	}
 
-	if len(varsS) != len(input.Equations) {
+	if len(varsS) != nEqns {
 		err = errors.New("mismatch number equations with variables")
 		// TODO give variables and equations numbers
 		log.Printf("%v", err)
 		log.Printf("Variables: %v", varsS)
+		log.Printf("Equations Number: %v", nEqns)
 		return false, err
 	}
 
@@ -131,18 +153,10 @@ func ParseText(File string, Vars *[]*types.Variable,
 	}
 	// For every line,create a equation
 	for i, line := range input.Equations {
-		if line.Text != "" {
-
-			// Replace explicit units with conversion factors to SI
-			line, err := parseExplicitUnits(line.Text)
-
-			if err != nil {
-				log.Printf("Can't parse units: %v\n", err)
-				return false, err
-			}
+		if line.UnitsParsedText != "" {
 
 			log.Printf("The equation is: %v", line)
-			newEq, err2 := constructors.NewEquation(line, *Vars, uint16(i), uint16(i))
+			newEq, err2 := constructors.NewEquation(line.UnitsParsedText, *Vars, uint16(i), uint16(i))
 			if err2 != nil {
 				log.Printf("%v", err2)
 				return false, err2
