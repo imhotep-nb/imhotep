@@ -40,12 +40,12 @@ func ParseText(File string, Vars *[]*types.Variable,
 	// varsR: Variables to replace to "-", for
 	// variables extraction
 	varsR := []string{"(", "+", "*", "-", ")"}
-	lineCopy := make([]string, len(input.Equations))
+	lineCopy := make([]types.EquationJSON, len(input.Equations))
 	copy(lineCopy, input.Equations)
 	for i, line := range input.Equations {
 		// Clear spaces
-		if line != "" {
-			tempLine = lineCopy[i]
+		if line.Text != "" {
+			tempLine = lineCopy[i].Text
 
 			// Remove all explicit units in eqns to avoid that the parse
 			// identify those like variables
@@ -59,7 +59,7 @@ func ParseText(File string, Vars *[]*types.Variable,
 
 			for _, varD := range varsD {
 				tempLine = strings.ReplaceAll(tempLine, varD, "")
-				line = strings.ReplaceAll(line, varD, "")
+				line.Text = strings.ReplaceAll(line.Text, varD, "")
 			}
 			// Put "-"
 			for _, varR := range varsR {
@@ -92,6 +92,7 @@ func ParseText(File string, Vars *[]*types.Variable,
 		err = errors.New("mismatch number equations with variables")
 		// TODO give variables and equations numbers
 		log.Printf("%v", err)
+		log.Printf("Variables: %v", varsS)
 		return false, err
 	}
 
@@ -130,10 +131,10 @@ func ParseText(File string, Vars *[]*types.Variable,
 	}
 	// For every line,create a equation
 	for i, line := range input.Equations {
-		if line != "" {
+		if line.Text != "" {
 
 			// Replace explicit units with conversion factors to SI
-			line, err := parseExplicitUnits(line)
+			line, err := parseExplicitUnits(line.Text)
 
 			if err != nil {
 				log.Printf("Can't parse units: %v\n", err)

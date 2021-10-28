@@ -13,8 +13,16 @@ type APIInput struct {
 	/*
 		Parse variables and Equations data from API in JSON format
 	*/
-	Equations []string       `json:"eqns"`
+	Equations []EquationJSON `json:"eqns"`
 	Variables []VariableJSON `json:"vars"`
+}
+
+type EquationJSON struct {
+	/*
+		Parse equations data from API in JSON format
+	*/
+	Text string `json:"text"`
+	Line int    `json:"Line"`
 }
 
 type VariableJSON struct {
