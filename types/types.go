@@ -57,6 +57,7 @@ type Variable struct {
 		solved: Define if the variable is determinated
 	*/
 	Name           string
+	Index          uint16
 	Guess          float64
 	Upperlim       float64
 	Lowerlim       float64

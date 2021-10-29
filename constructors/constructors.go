@@ -11,7 +11,7 @@ import (
 	"github.com/imhotep-nb/units/quantity"
 )
 
-func NewVariable(Name string, Guess *float64, Upperlim *float64, Lowerlim *float64,
+func NewVariable(Name string, Index uint16, Guess *float64, Upperlim *float64, Lowerlim *float64,
 	Comment *string, Unit *string) (*types.Variable, error) {
 
 	/*
@@ -26,7 +26,7 @@ func NewVariable(Name string, Guess *float64, Upperlim *float64, Lowerlim *float
 		return nil, err
 	}
 
-	newVar := types.Variable{Name: Name}
+	newVar := types.Variable{Name: Name, Index: Index}
 
 	if Upperlim == nil {
 		newVar.Upperlim = math.Inf(1)
@@ -106,9 +106,11 @@ func NewEquation(EquationText string, Vars []*types.Variable,
 		"sin": math.Sin,
 	}
 	newEqn := types.Equation{
-		Vars: Vars,
-		Text: EquationText,
-		Env:  env,
+		Vars:  Vars,
+		Text:  EquationText,
+		Env:   env,
+		Index: Index,
+		Line:  Line,
 	}
 	newEqn.UpdateEnv()
 	program, err2 := expr.Compile(EquationText, expr.Env(env),

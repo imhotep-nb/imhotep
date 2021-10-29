@@ -119,7 +119,7 @@ func ParseText(File string, Vars *[]*types.Variable,
 	}
 
 	// For for generate variable structs:
-	for _, varJSON := range input.Variables {
+	for i, varJSON := range input.Variables {
 
 		// validate if the varJSON exits in the identified variables in the equations (varsS)
 		var existVar = false
@@ -142,7 +142,8 @@ func ParseText(File string, Vars *[]*types.Variable,
 		upperlim := varJSON.Upperlim
 		comment := varJSON.Comment
 		unit := varJSON.Unit
-		newVar, err := constructors.NewVariable(varJSON.Name, &guess, &upperlim, &lowerlim, &comment, &unit)
+		newVar, err := constructors.NewVariable(varJSON.Name, uint16(i), &guess,
+			&upperlim, &lowerlim, &comment, &unit)
 		if err != nil {
 			log.Printf("Error in variable creation %v: %v", varJSON.Name, err)
 			// &Vars = *[]*types.Variable{}
@@ -156,7 +157,8 @@ func ParseText(File string, Vars *[]*types.Variable,
 		if line.UnitsParsedText != "" {
 
 			log.Printf("The equation is: %v", line)
-			newEq, err2 := constructors.NewEquation(line.UnitsParsedText, *Vars, uint16(i), uint16(i))
+			newEq, err2 := constructors.NewEquation(line.UnitsParsedText, *Vars,
+				uint16(i), uint16(line.Line))
 			if err2 != nil {
 				log.Printf("%v", err2)
 				return false, err2
