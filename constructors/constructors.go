@@ -93,7 +93,7 @@ func NewVariable(Name string, Index uint16, Guess *float64, Upperlim *float64, L
 }
 
 func NewEquation(EquationText string, Vars []*types.Variable,
-	Index uint16, Line uint16) (*types.Equation, error) {
+	Index uint16, Line uint16, IndexVars []int) (*types.Equation, error) {
 	var err error
 	if EquationText == "" {
 		err = errors.New("The equation has to have a text")
@@ -106,11 +106,12 @@ func NewEquation(EquationText string, Vars []*types.Variable,
 		"sin": math.Sin,
 	}
 	newEqn := types.Equation{
-		Vars:  Vars,
-		Text:  EquationText,
-		Env:   env,
-		Index: Index,
-		Line:  Line,
+		Vars:      Vars,
+		Text:      EquationText,
+		Env:       env,
+		Index:     Index,
+		Line:      Line,
+		IndexVars: IndexVars,
 	}
 	newEqn.UpdateEnv()
 	program, err2 := expr.Compile(EquationText, expr.Env(env),

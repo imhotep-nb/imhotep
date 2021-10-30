@@ -33,19 +33,21 @@ func ParseText(File string, Vars *[]*types.Variable,
 	// so concatenate eqn to replace the whole units at the same time.
 	// Use a equations separator to concat it; the only requeriment is that
 	// there is no risk that the separator could be in the eqn.
-	concatEgns := ""
+	concatEqns := ""
 	eqnSeparator := "@@&##&@@##"
 	nEqns := len(input.Equations)
 	for i, line := range input.Equations {
 
-		if i != (nEqns - 1) {
-			concatEgns += line.Text + eqnSeparator
+		if i < (nEqns - 1) {
+			concatEqns += line.Text + eqnSeparator
+		} else if i == nEqns-1 {
+			concatEqns += line.Text
 		}
 
 	}
 
 	// Replace explicit units with conversion factors to SI
-	concatEqnsParsed, err := parseExplicitUnits(concatEgns)
+	concatEqnsParsed, err := parseExplicitUnits(concatEqns)
 	var unitsParsedTexts []string
 	if err != nil {
 		log.Printf("Can't parse units: %v\n", err)
@@ -72,7 +74,9 @@ func ParseText(File string, Vars *[]*types.Variable,
 	varsR := []string{"(", "+", "*", "-", ")"}
 	lineCopy := make([]types.EquationJSON, nEqns)
 	copy(lineCopy, input.Equations)
+	varsDirectory := make(map[int][]int)
 	for i, line := range input.Equations {
+		varsDirectory[i] = []int{}
 		// Clear spaces
 		if line.UnitsParsedText != "" {
 
@@ -95,14 +99,19 @@ func ParseText(File string, Vars *[]*types.Variable,
 				if varT != " " && varT != "" {
 					// Check if varT lives in varsS
 					liveInside := false
-					for _, varS := range varsS {
+					indexT := -1
+					for index, varS := range varsS {
 						if varS == varT {
 							liveInside = true
+							indexT = index
 						}
 					}
 					// If not, add it!
 					if !liveInside {
 						varsS = append(varsS, varT)
+						varsDirectory[i] = append(varsDirectory[i], len(varsS)-1)
+					} else {
+						varsDirectory[i] = append(varsDirectory[i], indexT)
 					}
 				}
 			}
@@ -142,6 +151,7 @@ func ParseText(File string, Vars *[]*types.Variable,
 		upperlim := varJSON.Upperlim
 		comment := varJSON.Comment
 		unit := varJSON.Unit
+		log.Printf("The variable %v has index %v\n", varJSON.Name, i)
 		newVar, err := constructors.NewVariable(varJSON.Name, uint16(i), &guess,
 			&upperlim, &lowerlim, &comment, &unit)
 		if err != nil {
@@ -155,10 +165,10 @@ func ParseText(File string, Vars *[]*types.Variable,
 	// For every line,create a equation
 	for i, line := range input.Equations {
 		if line.UnitsParsedText != "" {
-
-			log.Printf("The equation is: %v", line)
+			log.Printf("The equation is: %v ", line.UnitsParsedText)
+			log.Printf("and the indices are %v\n", varsDirectory[i])
 			newEq, err2 := constructors.NewEquation(line.UnitsParsedText, *Vars,
-				uint16(i), uint16(line.Line))
+				uint16(i), uint16(line.Line), varsDirectory[i])
 			if err2 != nil {
 				log.Printf("%v", err2)
 				return false, err2

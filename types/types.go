@@ -74,14 +74,16 @@ type Equation struct {
 		line: Equation line number of the text writed inside equations box.
 		text: Equation text writed by user.
 		exec: expr compiled program from equation text.
-		vars: pointers's slice to variables
+		indexVars: Integer array with index of variables on equation
+		vars: pointers's slice to ALL variables
 	*/
-	Index uint16
-	Line  uint16
-	Text  string
-	Exec  *vm.Program
-	Env   map[string]interface{}
-	Vars  []*Variable
+	Index     uint16
+	Line      uint16
+	Text      string
+	Exec      *vm.Program
+	Env       map[string]interface{}
+	IndexVars []int
+	Vars      []*Variable
 }
 
 func (e *Equation) UpdateEnv() {
