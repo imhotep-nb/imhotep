@@ -123,3 +123,13 @@ func NewEquation(EquationText string, Vars []*types.Variable,
 	newEqn.Exec = program
 	return &newEqn, nil
 }
+
+func NewBlockEquation(eqns []*types.Equation, vars []*types.Variable,
+	index int) (*types.BlockEquations, error) {
+	blockEqn := types.BlockEquations{
+		Equations: eqns,
+		Variables: vars,
+		Index:     index,
+	}
+	return &blockEqn, nil
+}

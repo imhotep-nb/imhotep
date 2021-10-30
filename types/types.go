@@ -109,3 +109,16 @@ func (e *Equation) RunProgram() (float64, error) {
 		return output.(float64), nil
 	}
 }
+
+type BlockEquations struct {
+	/*
+		Block from Tarjan algorithm
+		Equations: Array of equation structs on block
+		Variables: Array of variables ONLY of block
+			equations
+		Index: Block index of equations system
+	*/
+	Equations []*Equation
+	Variables []*Variable
+	Index     int
+}
