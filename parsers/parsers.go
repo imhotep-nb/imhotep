@@ -29,7 +29,7 @@ func ParseText(File string, Vars *[]*types.Variable,
 
 	json.Unmarshal(buf, &input)
 
-	Settings = &input.Settings
+	*Settings = input.Settings
 
 	// It need replace explicit units with conversion factors in SI
 	// so concatenate eqn to replace the whole units at the same time.

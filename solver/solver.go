@@ -16,6 +16,7 @@ func Hola() {
 }
 
 func Solver(blockEqn types.BlockEquations, settingsSolver types.SolverSettings) {
+	fmt.Printf("settingsSolver: %v\n", settingsSolver)
 	settings := optimize.Settings{
 		GradientThreshold: settingsSolver.GradientThreshold,
 		MajorIterations:   settingsSolver.MajorIterations,
@@ -40,7 +41,6 @@ func Solver(blockEqn types.BlockEquations, settingsSolver types.SolverSettings) 
 			}
 			output += out * out
 		}
-		log.Printf("%v\n", output)
 		return output
 	}
 
@@ -60,8 +60,14 @@ func Solver(blockEqn types.BlockEquations, settingsSolver types.SolverSettings) 
 	}
 	result, err := optimize.Minimize(problem, X, &settings, nil)
 	if err != nil {
-		log.Printf("The solver fails: %v", err)
-		return
+		log.Fatal(err)
 	}
-	log.Printf("Finally!: %v", result)
+	if err = result.Status.Err(); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("result.Status: %v\n", result.Status)
+	fmt.Printf("result.X: %0.4g\n", result.X)
+	fmt.Printf("result.F: %0.4g\n", result.F)
+	fmt.Printf("Time: %v microseconds\n", result.Runtime.Microseconds())
+	fmt.Printf("result.Stats.FuncEvaluations: %d\n", result.Stats.FuncEvaluations)
 }
