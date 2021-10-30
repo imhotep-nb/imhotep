@@ -15,6 +15,7 @@ type APIInput struct {
 	*/
 	Equations []EquationJSON `json:"eqns"`
 	Variables []VariableJSON `json:"vars"`
+	Settings  SolverSettings `json:"settings"`
 }
 
 type EquationJSON struct {
@@ -38,6 +39,22 @@ type VariableJSON struct {
 	Unit     string  `json:"unit"`
 }
 
+type SolverSettings struct {
+	/*
+		Set of settings for equation solver
+
+	*/
+	// InitValues
+	GradientThreshold float64 `json:"gradientThreshold"`
+	// Converger
+	MajorIterations int `json:"majorIterations"`
+	Runtime         int `json:"runtime"`
+	FuncEvaluations int `json:"funcEvaluations"`
+	GradEvaluations int `json:"gradEvaluations"`
+	// HessEvaluations
+	Concurrent int `json:"concurrent"`
+}
+
 type Variable struct {
 	/*
 		name: Name of variable eg: x
@@ -59,6 +76,7 @@ type Variable struct {
 	Name           string
 	Index          uint16
 	Guess          float64
+	TempValue      float64
 	Upperlim       float64
 	Lowerlim       float64
 	Comment        string
@@ -86,13 +104,20 @@ type Equation struct {
 	Vars      []*Variable
 }
 
-func (e *Equation) UpdateEnv() {
+func (e *Equation) UpdateEnv(guessUpdate bool) {
 	/*
 		Update guesses from variables in the environment
 	*/
 	for _, v := range e.Vars {
-		// Equations system are evaluated in SI
-		e.Env[v.Name] = v.Guess * v.Unit.ToSI().Value()
+		if guessUpdate {
+			// Equations system are evaluated in SI
+			valueSI := v.Guess * v.Unit.ToSI().Value()
+			v.TempValue = valueSI
+			e.Env[v.Name] = valueSI
+		} else {
+			// Value from optimize iteration
+			e.Env[v.Name] = v.TempValue
+		}
 	}
 }
 
@@ -100,7 +125,7 @@ func (e *Equation) RunProgram() (float64, error) {
 	/*
 		Run the program to evaluate the equation
 	*/
-	e.UpdateEnv()
+	e.UpdateEnv(false)
 	output, err := expr.Run(e.Exec, e.Env)
 	if err != nil {
 		log.Printf("%v", err)

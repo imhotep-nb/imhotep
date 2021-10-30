@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"imhotep/constructors"
 	"imhotep/parsers"
+	"imhotep/solver"
 	"imhotep/types"
 	"log"
 )
@@ -12,7 +12,8 @@ func main() {
 
 	Vars := []*types.Variable{}
 	Eqns := []*types.Equation{}
-	_, err := parsers.ParseText("./testing/texto.json", &Vars, &Eqns)
+	Settings := types.SolverSettings{}
+	_, err := parsers.ParseText("./testing/texto.json", &Vars, &Eqns, &Settings)
 	if err != nil {
 		log.Printf("Something fails: %v", err)
 		return
@@ -24,11 +25,12 @@ func main() {
 	}
 	blocksEquation = append(blocksEquation, newBlock)
 	log.Printf("This block list is: %v\n", blocksEquation)
-	for _, eqn := range Eqns {
-		val, errExec := eqn.RunProgram()
-		if errExec != nil {
-			log.Printf("Falló la ejecución de la ecuación %v: %v", eqn.Text, errExec)
-		}
-		fmt.Println(val)
-	}
+	solver.Solver(*(blocksEquation)[0], Settings)
+	// for _, eqn := range Eqns {
+	// 	val, errExec := eqn.RunProgram()
+	// 	if errExec != nil {
+	// 		log.Printf("Falló la ejecución de la ecuación %v: %v", eqn.Text, errExec)
+	// 	}
+	// 	fmt.Println(val)
+	// }
 }

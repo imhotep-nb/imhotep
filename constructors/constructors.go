@@ -113,7 +113,7 @@ func NewEquation(EquationText string, Vars []*types.Variable,
 		Line:      Line,
 		IndexVars: IndexVars,
 	}
-	newEqn.UpdateEnv()
+	newEqn.UpdateEnv(true)
 	program, err2 := expr.Compile(EquationText, expr.Env(env),
 		expr.AsFloat64())
 	if err2 != nil {
