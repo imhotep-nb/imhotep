@@ -24,13 +24,21 @@ func main() {
 		log.Printf("Block determination fails: %v\n", errB)
 	}
 	blocksEquation = append(blocksEquation, newBlock)
-	log.Printf("This block list is: %v\n", blocksEquation)
-	solver.Solver(*(blocksEquation)[0], Settings)
-	// for _, eqn := range Eqns {
-	// 	val, errExec := eqn.RunProgram()
-	// 	if errExec != nil {
-	// 		log.Printf("Falló la ejecución de la ecuación %v: %v", eqn.Text, errExec)
-	// 	}
-	// 	fmt.Println(val)
-	// }
+	log.Printf("This block list is: %v\n", &blocksEquation)
+
+	result, errS := solver.SolverBlock(*(blocksEquation)[0], Settings)
+
+	if errS != nil {
+		log.Printf("Block fails: %v", err)
+	} else {
+		log.Printf("result.Status: %v\n", result.Status)
+		log.Printf("result.X: %0.4g\n", result.X)
+		log.Printf("result.F: %0.4g\n", result.F)
+		log.Printf("Time: %v microseconds\n", result.Runtime.Microseconds())
+		log.Printf("result.Stats.FuncEvaluations: %d\n", result.Stats.FuncEvaluations)
+
+		for _, varS := range Vars {
+			log.Printf("[%v] %v = %v\n", varS.Solved, varS.Name, varS.Guess)
+		}
+	}
 }

@@ -130,6 +130,7 @@ func NewBlockEquation(eqns []*types.Equation, vars []*types.Variable,
 		Equations: eqns,
 		Variables: vars,
 		Index:     index,
+		Solved:    false,
 	}
 	return &blockEqn, nil
 }

@@ -142,8 +142,10 @@ type BlockEquations struct {
 		Variables: Array of variables ONLY of block
 			equations
 		Index: Block index of equations system
+		Solved: When all block eqns are solved
 	*/
 	Equations []*Equation
 	Variables []*Variable
 	Index     int
+	Solved    bool
 }
