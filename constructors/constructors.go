@@ -2,6 +2,7 @@ package constructors
 
 import (
 	"errors"
+	basic_functions "imhotep/interfaces"
 	"imhotep/types"
 	"math"
 
@@ -100,11 +101,7 @@ func NewEquation(EquationText string, Vars []*types.Variable,
 		log.Printf("%v", err)
 		return nil, err
 	}
-	env := map[string]interface{}{
-		"cos": math.Cos,
-		"tan": math.Tan,
-		"sin": math.Sin,
-	}
+	env := basic_functions.DefaultEnv()
 	newEqn := types.Equation{
 		Vars:      Vars,
 		Text:      EquationText,
