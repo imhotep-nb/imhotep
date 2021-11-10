@@ -51,12 +51,17 @@ func ParseText(File string, Vars *[]*types.Variable,
 	// Replace explicit units with conversion factors to SI
 	concatEqnsParsed, err := parseExplicitUnits(concatEqns)
 	var unitsParsedTexts []string
+	var funcStrings []string
 	if err != nil {
 		log.Printf("Can't parse units: %v\n", err)
 		return false, err
 	} else {
+		// Find functions to avoid it when identify variables
+		// Take avantage that already are concatenated all lines
+		funcRegex := regexp.MustCompile(`[a-zA-Z0-9]+[\(]`)
+		funcStrings = funcRegex.FindAllString(concatEqnsParsed, -1)
 		unitsParsedTexts = strings.Split(concatEqnsParsed, eqnSeparator)
-
+		log.Printf("Functions founded: %v\n", funcStrings)
 	}
 
 	for i, line := range unitsParsedTexts {
@@ -73,7 +78,7 @@ func ParseText(File string, Vars *[]*types.Variable,
 	varsD := []string{" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
 	// varsR: Variables to replace to "-", for
 	// variables extraction
-	varsR := []string{"(", "+", "*", "-", ")"}
+	varsR := []string{"(", "+", "*", "-", ")", ".", "/", "e", "phi", "pi"}
 	lineCopy := make([]types.EquationJSON, nEqns)
 	copy(lineCopy, input.Equations)
 	varsDirectory := make(map[int][]int)
@@ -84,6 +89,11 @@ func ParseText(File string, Vars *[]*types.Variable,
 
 			tempLine = lineCopy[i].UnitsParsedText
 
+			// Remove functions
+			for _, varFunc := range funcStrings {
+				tempLine = strings.ReplaceAll(tempLine, varFunc, "")
+			}
+			// Remove numbers and spaces
 			for _, varD := range varsD {
 				tempLine = strings.ReplaceAll(tempLine, varD, "")
 				line.UnitsParsedText = strings.ReplaceAll(line.UnitsParsedText, varD, "")
