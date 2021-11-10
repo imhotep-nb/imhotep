@@ -98,13 +98,16 @@ func ParseText(File string, Vars *[]*types.Variable,
 				tempLine = strings.ReplaceAll(tempLine, varD, "")
 				line.UnitsParsedText = strings.ReplaceAll(line.UnitsParsedText, varD, "")
 			}
-			// Put "-"
+			// Replace operator symbols with  "&"
 			for _, varR := range varsR {
 				tempLine = strings.ReplaceAll(tempLine, varR, "&")
 			}
-			// Split "-"
+			// Split "&", but use FieldsFunc instead, to avoid empty values in slice
 			log.Printf("The string for splitting is: %v", tempLine)
-			varsT := strings.Split(tempLine, "&")
+			f := func(c rune) bool {
+				return c == '&'
+			}
+			varsT := strings.FieldsFunc(tempLine, f)
 			log.Printf("Load a variables list in string format: %v. Length of: %v", varsT, len(varsT))
 			// Evaluate availability
 			for _, varT := range varsT {
