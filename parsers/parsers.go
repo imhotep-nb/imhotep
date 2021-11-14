@@ -78,9 +78,10 @@ func ParseText(File string, Vars *[]*types.Variable,
 	varsD := []string{" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
 	// varsR: Variables to replace to "-", for
 	// variables extraction
-	varsR := []string{"(", "+", "*", "-", ")", ".", "/", "e", "phi", "pi"}
+	varsR := []string{"(", "+", "*", "-", ")", ".", "/", "e", "phi", "pi", ","}
 	lineCopy := make([]types.EquationJSON, nEqns)
 	copy(lineCopy, input.Equations)
+	var reStringVars = regexp.MustCompile(`\'\w+'`)
 	varsDirectory := make(map[int][]int)
 	for i, line := range input.Equations {
 		varsDirectory[i] = []int{}
@@ -88,7 +89,8 @@ func ParseText(File string, Vars *[]*types.Variable,
 		if line.UnitsParsedText != "" {
 
 			tempLine = lineCopy[i].UnitsParsedText
-
+			// Remove strings vars
+			tempLine = reStringVars.ReplaceAllString(tempLine, "")
 			// Remove functions
 			for _, varFunc := range funcStrings {
 				tempLine = strings.ReplaceAll(tempLine, varFunc, "")
@@ -158,6 +160,7 @@ func ParseText(File string, Vars *[]*types.Variable,
 			err = errors.New("variables in JSON mismatch with variables in equations")
 			// TODO give variables names from JSON and from equations
 			log.Printf("%v", err)
+			log.Printf("Variables varsS: %v, Variables varJSON: %v\n", varsS, varJSON)
 			return false, err
 		}
 
