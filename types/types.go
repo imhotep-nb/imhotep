@@ -149,3 +149,15 @@ type BlockEquations struct {
 	Index     int
 	Solved    bool
 }
+
+type LowestVar struct {
+	/*
+		Stores the information about a node relationship in the
+		adjacency matrix to the representation of the equations system
+
+		Val: 1 or 0 ; variable exist or not in the equations
+		Row: index of the row (equation) in the matrix
+		Col: index of the col (variable) in the matrix
+	*/
+	Val, Row, Col int
+}
