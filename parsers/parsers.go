@@ -82,9 +82,9 @@ func ParseText(File string, Vars *[]*types.Variable,
 	lineCopy := make([]types.EquationJSON, nEqns)
 	copy(lineCopy, input.Equations)
 	var reStringVars = regexp.MustCompile(`\'\w+'`)
-	varsDirectory := make(map[int][]int)
+	varsInEqns := make(map[int][]string)
 	for i, line := range input.Equations {
-		varsDirectory[i] = []int{}
+		varsInEqns[i] = []string{}
 		// Clear spaces
 		if line.UnitsParsedText != "" {
 
@@ -116,20 +116,18 @@ func ParseText(File string, Vars *[]*types.Variable,
 				if varT != " " && varT != "" {
 					// Check if varT lives in varsS
 					liveInside := false
-					indexT := -1
-					for index, varS := range varsS {
+
+					for _, varS := range varsS {
 						if varS == varT {
 							liveInside = true
-							indexT = index
 						}
 					}
 					// If not, add it!
 					if !liveInside {
 						varsS = append(varsS, varT)
-						varsDirectory[i] = append(varsDirectory[i], len(varsS)-1)
-					} else {
-						varsDirectory[i] = append(varsDirectory[i], indexT)
 					}
+					// add var in the row of the equation i
+					varsInEqns[i] = append(varsInEqns[i], varT)
 				}
 			}
 		}
@@ -144,7 +142,8 @@ func ParseText(File string, Vars *[]*types.Variable,
 		return false, err
 	}
 
-	// For for generate variable structs:
+	// For generate variable structs:
+	varsIndexByName := make(map[string]int)
 	for i, varJSON := range input.Variables {
 
 		// validate if the varJSON exits in the identified variables in the equations (varsS)
@@ -179,14 +178,23 @@ func ParseText(File string, Vars *[]*types.Variable,
 			return false, nil
 		}
 		*Vars = append(*Vars, newVar)
+		// Assign the index to the variable name
+		varsIndexByName[varJSON.Name] = i
 	}
 	// For every line,create a equation
 	for i, line := range input.Equations {
 		if line.UnitsParsedText != "" {
 			log.Printf("The equation is: %v ", line.UnitsParsedText)
-			log.Printf("and the indices are %v\n", varsDirectory[i])
+
+			// parse the variable Name with the variable index
+			varsIndexInEqn_i := make([]int, len(varsInEqns[i])) // index of each variable
+			for j, nameVar := range varsInEqns[i] {
+				varsIndexInEqn_i[j] = varsIndexByName[nameVar]
+			}
+
+			log.Printf("and the indices are %v\n", varsIndexInEqn_i)
 			newEq, err2 := constructors.NewEquation(line.UnitsParsedText, *Vars,
-				uint16(i), uint16(line.Line), varsDirectory[i])
+				uint16(i), uint16(line.Line), varsIndexInEqn_i)
 			if err2 != nil {
 				log.Printf("%v", err2)
 				return false, err2
