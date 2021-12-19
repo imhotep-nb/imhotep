@@ -1,6 +1,7 @@
 package solver
 
 import (
+	"errors"
 	"fmt"
 	"imhotep/types"
 	"log"
@@ -153,6 +154,14 @@ func ConvertFullPseudograph(adjacencyMatrix [][]int) ([][]int, map[int]int, erro
 					lastJcol = j
 					lastiRow[j] = i
 				}
+
+				// check that any acumulative sum is zero at the end
+				if i == currentLastRow && sumCols[j] == 0 {
+					err := errors.New("fails to reorder the adjacency matrix to assign a eqn to a variable")
+					log.Printf(" index variable %v can't be assign to any eqn: %v\n", i, err)
+					return [][]int{}, map[int]int{}, err
+				}
+
 				// update only in the last row, when ensures that the acumulative sum in each
 				// column is the total variables sum
 				if i == currentLastRow && (minSumCols.Val == 0 || sumCols[j] < minSumCols.Val) {
@@ -160,6 +169,13 @@ func ConvertFullPseudograph(adjacencyMatrix [][]int) ([][]int, map[int]int, erro
 					minSumCols.Row = lastiRow[j]
 					minSumCols.Col = j
 				}
+			}
+
+			// check that any acumulative sum is zero at the end
+			if i == currentLastRow && sumRows[i] == 0 {
+				err := errors.New("fails to reorder the adjacency matrix to assign a eqn to a variable")
+				log.Printf(" index eqn %v can't be assign to any variable: %v\n", i, err)
+				return [][]int{}, map[int]int{}, err
 			}
 
 			// update when end the row (minSumRows only initializate) or when
@@ -181,14 +197,14 @@ func ConvertFullPseudograph(adjacencyMatrix [][]int) ([][]int, map[int]int, erro
 				minToAdd.Row = i
 				minToAdd.Col = minSumRows.Col
 
-			} else if i == currentLastRow && minSumCols.Val <= minSumRows.Val {
-				minToAdd.Val = 1
-				minToAdd.Row = minSumCols.Row
-				minToAdd.Col = minSumCols.Col
-			} else if i == currentLastRow && minSumCols.Val > minSumRows.Val {
+			} else if i == currentLastRow && minSumRows.Val <= minSumCols.Val {
 				minToAdd.Val = 1
 				minToAdd.Row = minSumRows.Row
 				minToAdd.Col = minSumRows.Col
+			} else if i == currentLastRow && minSumRows.Val > minSumCols.Val {
+				minToAdd.Val = 1
+				minToAdd.Row = minSumCols.Row
+				minToAdd.Col = minSumCols.Col
 			}
 
 			// Save the pair eqn and var identify above
@@ -212,8 +228,9 @@ func ConvertFullPseudograph(adjacencyMatrix [][]int) ([][]int, map[int]int, erro
 				break
 			}
 		}
-		log.Printf("%v minRow and %v minCol, pairing %v -> %v",
-			minSumRows.Val, minSumCols.Val, minToAdd.Row, minToAdd.Col)
+		log.Printf("iter %v : %v (%v, %v) minRow and %v (%v, %v) minCol, pairing %v  -> %v",
+			iter, minSumRows.Val, minSumRows.Row, minSumRows.Col, minSumCols.Val, minSumCols.Row,
+			minSumCols.Col, minToAdd.Row, minToAdd.Col)
 	}
 	log.Printf("Convert full pseudograph take %v for loops\n", contadorFors)
 

@@ -55,7 +55,11 @@ func main() {
 	}
 
 	// Convert adjacency Matrix into pseudographe
-	_, reOrderEqn, _ := solver.ConvertFullPseudograph(adjacencyMatrix)
+	_, reOrderEqn, errM := solver.ConvertFullPseudograph(adjacencyMatrix)
+
+	if errM != nil {
+		log.Panic(errM)
+	}
 	log.Printf("Re order de equations: %v\n", reOrderEqn)
 
 	// Create the graph struct to the input of tarjan's package
