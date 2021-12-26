@@ -115,7 +115,7 @@ func (e *Equation) UpdateEnv(guessUpdate bool) {
 			valueSI := v.Guess * v.Unit.ToSI().Value()
 			v.TempValue = valueSI
 			e.Env[v.Name] = valueSI
-		} else {
+		} else if !v.Solved {
 			// Value from optimize iteration
 			e.Env[v.Name] = v.TempValue
 		}

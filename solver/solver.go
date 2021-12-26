@@ -2,7 +2,6 @@ package solver
 
 import (
 	"errors"
-	"fmt"
 	"imhotep/types"
 	"log"
 	"math"
@@ -30,7 +29,7 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 		log.Print(errAdj.Error())
 		return types.Solution{}, errAdj
 	}
-	blocksEqnIndex, errBlocks := MakeEquationBlocks(Eqns, adjacencyMatrix)
+	blocksEqnIndex, blocksEqnIndexInv, errBlocks := MakeEquationBlocks(Eqns, adjacencyMatrix)
 	if errBlocks != nil {
 		log.Print(errBlocks.Error())
 		return types.Solution{}, errBlocks
@@ -44,7 +43,7 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 		indexVars := []int{}
 		varsList := []*types.Variable{}
 		for j, EqnIndex := range blockIndexes {
-			eqnList[j] = Eqns[EqnIndex.(int)]
+			eqnList[j] = Eqns[blocksEqnIndexInv[EqnIndex.(int)]]
 			for _, VarIndex := range eqnList[j].IndexVars {
 				add := true
 				for _, Var := range indexVars {
@@ -66,7 +65,30 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 		}
 		blocks[i] = block
 	}
-	fmt.Print(blocks)
+
+	// In this section, the blocks will be solved
+
+	for i, block := range blocks {
+		result, errS := SolverBlock(block, settingsSolver)
+		log.Print("------------------------------------------------------------------")
+		log.Printf("Este es el bloque número %v", i)
+		if errS != nil {
+			log.Printf("Block fails: %v", errS)
+			log.Printf("The equations: %v", *block.Equations[0])
+			return types.Solution{}, errS
+		} else {
+			log.Printf("result.Status: %v\n", result.Status)
+			log.Printf("result.X: %0.4g\n", result.X)
+			log.Printf("result.F: %0.4g\n", result.F)
+			log.Printf("Time: %v microseconds\n", result.Runtime.Microseconds())
+			log.Printf("result.Stats.FuncEvaluations: %d\n", result.Stats.FuncEvaluations)
+
+			for _, varS := range Vars {
+				log.Printf("[%v] %v = %v\n", varS.Solved, varS.Name, varS.Guess)
+			}
+		}
+	}
+
 	return types.Solution{}, nil
 }
 
@@ -83,17 +105,18 @@ func MakeAdjacencyMatrix(Eqns []*types.Equation) ([][]int, error) {
 	return adjacencyMatrix, nil
 }
 
-func MakeEquationBlocks(Eqns []*types.Equation, adjacencyMatrix [][]int) ([][]interface{}, error) {
+func MakeEquationBlocks(Eqns []*types.Equation, adjacencyMatrix [][]int) ([][]interface{}, map[int]int, error) {
 	// Convert adjacency Matrix into pseudographe
 	_, reOrderEqn, errM := ConvertFullPseudograph(adjacencyMatrix)
 
 	if errM != nil {
 		log.Print(errM.Error())
-		return nil, errM
+		return nil, nil, errM
 	}
 	log.Printf("Re order de equations: %v\n", reOrderEqn)
 	// Create the graph struct to the input of tarjan's package
 	graph := make(map[interface{}][]interface{})
+	reOrderEqnInv := make(map[int]int)
 	for i, eqn := range Eqns {
 		elements := make([]interface{}, len(eqn.IndexVars))
 
@@ -101,12 +124,13 @@ func MakeEquationBlocks(Eqns []*types.Equation, adjacencyMatrix [][]int) ([][]in
 			elements[j] = val
 		}
 		graph[reOrderEqn[i]] = elements
+		reOrderEqnInv[reOrderEqn[i]] = i
 	}
 
 	log.Printf("Graph to tarjan: %v\n", graph)
 	output := tarjan.Connections(graph)
 	log.Printf("Blocks equations: %v\n", output)
-	return output, nil
+	return output, reOrderEqnInv, nil
 }
 
 func SolverBlock(blockEqn types.BlockEquations,
@@ -139,6 +163,7 @@ func SolverBlock(blockEqn types.BlockEquations,
 				return math.NaN()
 			}
 			output += out * out
+			log.Printf("La ecuación %v = %v va sumando %v", eqnBlock.Text, out, output)
 		}
 		return output
 	}
