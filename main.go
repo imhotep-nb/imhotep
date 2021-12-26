@@ -6,8 +6,6 @@ import (
 	"imhotep/solver"
 	"imhotep/types"
 	"log"
-
-	"github.com/looplab/tarjan"
 )
 
 func main() {
@@ -21,6 +19,9 @@ func main() {
 		return
 	}
 	blocksEquation := []*types.BlockEquations{}
+	// Tarjan testing
+	solver.Solver(Vars, Eqns, Settings)
+	//
 	newBlock, errB := constructors.NewBlockEquation(Eqns, Vars, 0)
 	if errB != nil {
 		log.Printf("Block determination fails: %v\n", errB)
@@ -44,37 +45,11 @@ func main() {
 		}
 	}
 
-	// Create the adjacency Matrix with rows and cols representing equations and variables respectively
-	adjacencyMatrix := make([][]int, len(Eqns))
-	for i, eqn := range Eqns {
-		adjacencyMatrix[i] = make([]int, len(Eqns))
+	log.Print("Desde acá perros")
 
-		for _, val := range eqn.IndexVars {
-			adjacencyMatrix[i][val] = 1
-		}
+	solution, errSol := solver.Solver(Vars, Eqns, Settings)
+	if errSol != nil {
+		log.Print(errSol.Error())
 	}
-
-	// Convert adjacency Matrix into pseudographe
-	_, reOrderEqn, errM := solver.ConvertFullPseudograph(adjacencyMatrix)
-
-	if errM != nil {
-		log.Panic(errM)
-	}
-	log.Printf("Re order de equations: %v\n", reOrderEqn)
-
-	// Create the graph struct to the input of tarjan's package
-	graph := make(map[interface{}][]interface{})
-	for i, eqn := range Eqns {
-		elements := make([]interface{}, len(eqn.IndexVars))
-
-		for j, val := range eqn.IndexVars {
-			elements[j] = val
-		}
-		graph[reOrderEqn[i]] = elements
-	}
-
-	log.Printf("Graph to tarjan: %v\n", graph)
-	output := tarjan.Connections(graph)
-	log.Printf("Blocks equations: %v\n", output)
-
+	log.Print(solution)
 }

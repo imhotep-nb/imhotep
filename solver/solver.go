@@ -8,16 +8,113 @@ import (
 	"math"
 	"time"
 
+	"github.com/looplab/tarjan"
 	"gonum.org/v1/gonum/diff/fd"
 	"gonum.org/v1/gonum/optimize"
 )
 
-func Hola() {
-	fmt.Printf("Hola Imhoteeeep")
+func Solver(Vars []*types.Variable, Eqns []*types.Equation,
+	settingsSolver types.SolverSettings) (types.Solution, error) {
+	/*
+		Split the equations into groups of small equations
+		called blocks, that could be solved in order saving
+		time of execution using Tarjan algorithm
+
+		McNunn, G. S. (2013). Using Tarjan's algorithm to organize and schedule the
+		computational workflow in a federated system of models and databases.
+		[https://web.archive.org/web/20201021194957/https://lib.dr.iastate.edu/etd/13566/]
+	*/
+
+	adjacencyMatrix, errAdj := MakeAdjacencyMatrix(Eqns)
+	if errAdj != nil {
+		log.Print(errAdj.Error())
+		return types.Solution{}, errAdj
+	}
+	blocksEqnIndex, errBlocks := MakeEquationBlocks(Eqns, adjacencyMatrix)
+	if errBlocks != nil {
+		log.Print(errBlocks.Error())
+		return types.Solution{}, errBlocks
+	}
+	log.Printf("Los bloques: %v", blocksEqnIndex)
+
+	// Create block equations from types
+	blocks := make([]types.BlockEquations, len(blocksEqnIndex))
+	for i, blockIndexes := range blocksEqnIndex {
+		eqnList := make([]*types.Equation, len(blockIndexes))
+		indexVars := []int{}
+		varsList := []*types.Variable{}
+		for j, EqnIndex := range blockIndexes {
+			eqnList[j] = Eqns[EqnIndex.(int)]
+			for _, VarIndex := range eqnList[j].IndexVars {
+				add := true
+				for _, Var := range indexVars {
+					if Var == VarIndex {
+						add = false
+					}
+				}
+				if add {
+					indexVars = append(indexVars, VarIndex)
+					varsList = append(varsList, Vars[VarIndex])
+				}
+			}
+		}
+		block := types.BlockEquations{
+			Equations: eqnList,
+			Variables: varsList,
+			Index:     i,
+			Solved:    false,
+		}
+		blocks[i] = block
+	}
+	fmt.Print(blocks)
+	return types.Solution{}, nil
+}
+
+func MakeAdjacencyMatrix(Eqns []*types.Equation) ([][]int, error) {
+	// Create the adjacency Matrix with rows and cols representing equations and variables respectively
+	adjacencyMatrix := make([][]int, len(Eqns))
+	for i, eqn := range Eqns {
+		adjacencyMatrix[i] = make([]int, len(Eqns))
+
+		for _, val := range eqn.IndexVars {
+			adjacencyMatrix[i][val] = 1
+		}
+	}
+	return adjacencyMatrix, nil
+}
+
+func MakeEquationBlocks(Eqns []*types.Equation, adjacencyMatrix [][]int) ([][]interface{}, error) {
+	// Convert adjacency Matrix into pseudographe
+	_, reOrderEqn, errM := ConvertFullPseudograph(adjacencyMatrix)
+
+	if errM != nil {
+		log.Print(errM.Error())
+		return nil, errM
+	}
+	log.Printf("Re order de equations: %v\n", reOrderEqn)
+	// Create the graph struct to the input of tarjan's package
+	graph := make(map[interface{}][]interface{})
+	for i, eqn := range Eqns {
+		elements := make([]interface{}, len(eqn.IndexVars))
+
+		for j, val := range eqn.IndexVars {
+			elements[j] = val
+		}
+		graph[reOrderEqn[i]] = elements
+	}
+
+	log.Printf("Graph to tarjan: %v\n", graph)
+	output := tarjan.Connections(graph)
+	log.Printf("Blocks equations: %v\n", output)
+	return output, nil
 }
 
 func SolverBlock(blockEqn types.BlockEquations,
 	settingsSolver types.SolverSettings) (*optimize.Result, error) {
+	/*
+		Solve one block from system equations using optimize.Minimize
+		and the method specified for user in settings
+	*/
 
 	settings := optimize.Settings{
 		GradientThreshold: settingsSolver.GradientThreshold,

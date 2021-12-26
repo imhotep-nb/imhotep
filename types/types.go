@@ -7,6 +7,7 @@ import (
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
 	"github.com/imhotep-nb/units/quantity"
+	"gonum.org/v1/gonum/optimize"
 )
 
 type APIInput struct {
@@ -148,6 +149,17 @@ type BlockEquations struct {
 	Variables []*Variable
 	Index     int
 	Solved    bool
+	Result    optimize.Result
+}
+
+type Solution struct {
+	/*
+		Solution struct for imhotep
+
+	*/
+	Variables []Variable
+	Equations []Equation
+	Blocks    []BlockEquations
 }
 
 type LowestVar struct {
