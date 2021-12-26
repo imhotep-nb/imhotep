@@ -49,7 +49,7 @@ func ParseText(File string, Vars *[]*types.Variable,
 	}
 
 	// Replace explicit units with conversion factors to SI
-	concatEqnsParsed, err := parseExplicitUnits(concatEqns)
+	concatEqnsParsed, err := ParseExplicitUnits(concatEqns)
 	var unitsParsedTexts []string
 	var funcStrings []string
 	if err != nil {
@@ -205,7 +205,7 @@ func ParseText(File string, Vars *[]*types.Variable,
 	return true, nil
 }
 
-func parseExplicitUnits(eqnText string) (string, error) {
+func ParseExplicitUnits(eqnText string) (string, error) {
 	/*
 	   This function parse a string (like a equation string)  using a regex to identify
 	   all explicit units, after that use quantity symbol parse to convert the unit to SI
