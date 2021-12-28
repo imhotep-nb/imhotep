@@ -151,8 +151,12 @@ func SolverBlock(blockEqn types.BlockEquations,
 
 	objective := func(input []float64) float64 {
 		output := 0.0
-		for i, varBlock := range blockEqn.Variables {
-			varBlock.TempValue = input[i]
+		i := 0
+		for _, varBlock := range blockEqn.Variables {
+			if !varBlock.Solved {
+				varBlock.TempValue = input[i]
+				i += 1
+			}
 		}
 		for _, eqnBlock := range blockEqn.Equations {
 			out, err := eqnBlock.RunProgram()
@@ -163,7 +167,6 @@ func SolverBlock(blockEqn types.BlockEquations,
 				return math.NaN()
 			}
 			output += out * out
-			log.Printf("La ecuación %v = %v va sumando %v", eqnBlock.Text, out, output)
 		}
 		return output
 	}
@@ -180,7 +183,9 @@ func SolverBlock(blockEqn types.BlockEquations,
 	// Initialize X with guesses for optimize iteration
 	X := []float64{}
 	for _, varB := range blockEqn.Variables {
-		X = append(X, varB.Guess)
+		if !varB.Solved {
+			X = append(X, varB.Guess)
+		}
 	}
 	result, err := optimize.Minimize(problem, X, &settings, nil)
 	if err != nil {
@@ -194,9 +199,13 @@ func SolverBlock(blockEqn types.BlockEquations,
 	} else {
 		blockEqn.Solved = true
 
-		for i, varBlock := range blockEqn.Variables {
-			varBlock.Solved = true
-			varBlock.Guess = result.X[i]
+		i := 0
+		for _, varBlock := range blockEqn.Variables {
+			if !varBlock.Solved {
+				varBlock.Solved = true
+				varBlock.Guess = result.X[i]
+				i += 1
+			}
 		}
 
 		return result, nil

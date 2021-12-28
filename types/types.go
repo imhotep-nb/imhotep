@@ -118,6 +118,8 @@ func (e *Equation) UpdateEnv(guessUpdate bool) {
 		} else if !v.Solved {
 			// Value from optimize iteration
 			e.Env[v.Name] = v.TempValue
+		} else {
+			e.Env[v.Name] = v.Guess
 		}
 	}
 }
