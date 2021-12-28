@@ -13,7 +13,7 @@ import (
 )
 
 func Solver(Vars []*types.Variable, Eqns []*types.Equation,
-	settingsSolver types.SolverSettings) (types.Solution, error) {
+	settingsSolver types.SolverSettings, debug bool) (types.APIOutput, error) {
 	/*
 		Split the equations into groups of small equations
 		called blocks, that could be solved in order saving
@@ -27,12 +27,12 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 	adjacencyMatrix, errAdj := MakeAdjacencyMatrix(Eqns)
 	if errAdj != nil {
 		log.Print(errAdj.Error())
-		return types.Solution{}, errAdj
+		return types.APIOutput{}, errAdj
 	}
-	blocksEqnIndex, blocksEqnIndexInv, errBlocks := MakeEquationBlocks(Eqns, adjacencyMatrix)
+	blocksEqnIndex, blocksEqnIndexInv, graph, errBlocks := MakeEquationBlocks(Eqns, adjacencyMatrix)
 	if errBlocks != nil {
 		log.Print(errBlocks.Error())
-		return types.Solution{}, errBlocks
+		return types.APIOutput{}, errBlocks
 	}
 	log.Printf("Los bloques: %v", blocksEqnIndex)
 
@@ -75,8 +75,9 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 		if errS != nil {
 			log.Printf("Block fails: %v", errS)
 			log.Printf("The equations: %v", *block.Equations[0])
-			return types.Solution{}, errS
+			return types.APIOutput{}, errS
 		} else {
+			block.Result = *result
 			log.Printf("result.Status: %v\n", result.Status)
 			log.Printf("result.X: %0.4g\n", result.X)
 			log.Printf("result.F: %0.4g\n", result.F)
@@ -89,7 +90,50 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 		}
 	}
 
-	return types.Solution{}, nil
+	// Output Structure
+	output := types.APIOutput{}
+	if debug {
+		equations := make([]types.EquationJSON, len(Eqns))
+		for i, eqn := range Eqns {
+			equations[i] = types.EquationJSON{
+				Text: eqn.Text,
+				Line: int(eqn.Line),
+			}
+		}
+		output.Eqns = equations
+	}
+	variables := make([]types.VariableJSON, len(Vars))
+	for i, variable := range Vars {
+		variables[i] = types.VariableJSON{
+			Name:     variable.Name,
+			Guess:    variable.Guess,
+			Upperlim: variable.Upperlim,
+			Lowerlim: variable.Lowerlim,
+			Comment:  variable.Comment,
+			Unit:     variable.Unit.String(),
+		}
+	}
+	output.Settings = settingsSolver
+
+	stats := types.Stats{
+		Blocks: make([]types.BlockInfo, len(blocks)),
+		Global: optimize.Stats{},
+	}
+	for i, block := range blocks {
+		stats.Blocks[i] = types.BlockInfo{
+			Stats:  block.Result.Stats,
+			Status: block.Result.Status.String(),
+		}
+		stats.Global.FuncEvaluations += block.Result.FuncEvaluations
+		stats.Global.GradEvaluations += block.Result.GradEvaluations
+		stats.Global.MajorIterations += block.Result.MajorIterations
+		stats.Global.Runtime += block.Result.Runtime
+	}
+	output.Stats = stats
+
+	output.Info.Graph = graph
+
+	return output, nil
 }
 
 func MakeAdjacencyMatrix(Eqns []*types.Equation) ([][]int, error) {
@@ -105,13 +149,13 @@ func MakeAdjacencyMatrix(Eqns []*types.Equation) ([][]int, error) {
 	return adjacencyMatrix, nil
 }
 
-func MakeEquationBlocks(Eqns []*types.Equation, adjacencyMatrix [][]int) ([][]interface{}, map[int]int, error) {
+func MakeEquationBlocks(Eqns []*types.Equation, adjacencyMatrix [][]int) ([][]interface{}, map[int]int, map[interface{}][]interface{}, error) {
 	// Convert adjacency Matrix into pseudographe
 	_, reOrderEqn, errM := ConvertFullPseudograph(adjacencyMatrix)
 
 	if errM != nil {
 		log.Print(errM.Error())
-		return nil, nil, errM
+		return nil, nil, nil, errM
 	}
 	log.Printf("Re order de equations: %v\n", reOrderEqn)
 	// Create the graph struct to the input of tarjan's package
@@ -130,7 +174,7 @@ func MakeEquationBlocks(Eqns []*types.Equation, adjacencyMatrix [][]int) ([][]in
 	log.Printf("Graph to tarjan: %v\n", graph)
 	output := tarjan.Connections(graph)
 	log.Printf("Blocks equations: %v\n", output)
-	return output, reOrderEqnInv, nil
+	return output, reOrderEqnInv, graph, nil
 }
 
 func SolverBlock(blockEqn types.BlockEquations,

@@ -17,6 +17,7 @@ type APIInput struct {
 	Equations []EquationJSON `json:"eqns"`
 	Variables []VariableJSON `json:"vars"`
 	Settings  SolverSettings `json:"settings"`
+	Debug     bool           `json:"debug"`
 }
 
 type EquationJSON struct {
@@ -54,6 +55,35 @@ type SolverSettings struct {
 	GradEvaluations int `json:"gradEvaluations"`
 	// HessEvaluations
 	Concurrent int `json:"concurrent"`
+}
+
+type Info struct {
+	Logs     []string
+	Errors   []string
+	Warnings []string
+	Msgs     []string
+	Graph    map[interface{}][]interface{}
+}
+
+type BlockInfo struct {
+	Stats  optimize.Stats
+	Status string
+}
+
+type Stats struct {
+	Blocks []BlockInfo
+	Global optimize.Stats
+}
+
+type APIOutput struct {
+	/*
+		Struct for output of API
+	*/
+	Eqns     []EquationJSON
+	Vars     []VariableJSON
+	Settings SolverSettings
+	Stats    Stats
+	Info     Info
 }
 
 type Variable struct {

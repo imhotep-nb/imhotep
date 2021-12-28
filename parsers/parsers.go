@@ -17,7 +17,8 @@ import (
 func ParseText(File string, Vars *[]*types.Variable,
 	Eqns *[]*types.Equation, Settings *types.SolverSettings) (bool, error) {
 	/*
-	   This function parse a file text string to a
+	   This function parse a file text string to a eqns and vars structs
+	   If no error, the boolean param is the APIInput.Debug setting
 	*/
 	var input types.APIInput
 	buf, err := ioutil.ReadFile(File)
@@ -28,6 +29,8 @@ func ParseText(File string, Vars *[]*types.Variable,
 	}
 
 	json.Unmarshal(buf, &input)
+
+	log.Printf("Debug: %v", input.Debug)
 
 	*Settings = input.Settings
 
@@ -202,7 +205,7 @@ func ParseText(File string, Vars *[]*types.Variable,
 			*Eqns = append(*Eqns, newEq)
 		}
 	}
-	return true, nil
+	return input.Debug, nil
 }
 
 func ParseExplicitUnits(eqnText string) (string, error) {
