@@ -29,7 +29,7 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 		log.Print(errAdj.Error())
 		return types.APIOutput{}, errAdj
 	}
-	blocksEqnIndex, blocksEqnIndexInv, graph, errBlocks := MakeEquationBlocks(Eqns, adjacencyMatrix)
+	blocksEqnIndex, blocksEqnIndexInv, _, errBlocks := MakeEquationBlocks(Eqns, adjacencyMatrix)
 	if errBlocks != nil {
 		log.Print(errBlocks.Error())
 		return types.APIOutput{}, errBlocks
@@ -77,7 +77,10 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 			log.Printf("The equations: %v", *block.Equations[0])
 			return types.APIOutput{}, errS
 		} else {
-			block.Result = *result
+			blocks[i].Result = optimize.Result{
+				Stats:  result.Stats,
+				Status: result.Status,
+			}
 			log.Printf("result.Status: %v\n", result.Status)
 			log.Printf("result.X: %0.4g\n", result.X)
 			log.Printf("result.F: %0.4g\n", result.F)
@@ -113,6 +116,7 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 			Unit:     variable.Unit.String(),
 		}
 	}
+	output.Vars = variables
 	output.Settings = settingsSolver
 
 	stats := types.Stats{
@@ -131,7 +135,7 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 	}
 	output.Stats = stats
 
-	output.Info.Graph = graph
+	// output.Info.Graph = graph
 
 	return output, nil
 }

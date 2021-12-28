@@ -62,7 +62,7 @@ type Info struct {
 	Errors   []string
 	Warnings []string
 	Msgs     []string
-	Graph    map[interface{}][]interface{}
+	// Graph    map[interface{}][]interface{}
 }
 
 type BlockInfo struct {

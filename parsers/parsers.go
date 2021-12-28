@@ -1,11 +1,9 @@
 package parsers
 
 import (
-	"encoding/json"
 	"errors"
 	"imhotep/constructors"
 	"imhotep/types"
-	"io/ioutil"
 	"log"
 	"regexp"
 	"strconv"
@@ -14,21 +12,12 @@ import (
 	"github.com/imhotep-nb/units/quantity"
 )
 
-func ParseText(File string, Vars *[]*types.Variable,
+func ParseText(input types.APIInput, Vars *[]*types.Variable,
 	Eqns *[]*types.Equation, Settings *types.SolverSettings) (bool, error) {
 	/*
 	   This function parse a file text string to a eqns and vars structs
 	   If no error, the boolean param is the APIInput.Debug setting
 	*/
-	var input types.APIInput
-	buf, err := ioutil.ReadFile(File)
-
-	if err != nil {
-		log.Printf("%v", err)
-		return false, err
-	}
-
-	json.Unmarshal(buf, &input)
 
 	log.Printf("Debug: %v", input.Debug)
 
