@@ -66,20 +66,27 @@ func ParseText(input types.APIInput, Vars *[]*types.Variable,
 	varsS := []string{}
 	// Extract the variables, for each line
 	tempLine := ""
-	// varsD: Variables to replace to ""
-	varsD := []string{" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
 	// varsR: Variables to replace to "-", for
 	// variables extraction
 	varsR := []string{"(", "+", "*", "-", ")", ".", "/", "e", "phi", "pi", ","}
 	lineCopy := make([]types.EquationJSON, nEqns)
+	// Backup of equation json objects
 	copy(lineCopy, input.Equations)
+	// This is for replace string variables.
+	// Example:
+	// h = entropy('Water', P, T, 20)
+	// where 'Water' is a string variable
 	var reStringVars = regexp.MustCompile(`\'\w+'`)
+	// This regular expression is for looking numbers wich no be
+	// part of some equation name
+	var reAloneNumbers = regexp.MustCompile(`(^[0-9][\*\/\+\-])|([\s\+\-\*\/\(][0-9]{1,})*`)
+	// This slice will store the vars on string format
 	varsInEqns := make(map[int][]string)
 	for i, line := range input.Equations {
 		varsInEqns[i] = []string{}
 		// Clear spaces
 		if line.UnitsParsedText != "" {
-
+			// tempLine store the equation line, but will be modified
 			tempLine = lineCopy[i].UnitsParsedText
 			// Remove strings vars
 			tempLine = reStringVars.ReplaceAllString(tempLine, "")
@@ -87,11 +94,10 @@ func ParseText(input types.APIInput, Vars *[]*types.Variable,
 			for _, varFunc := range funcStrings {
 				tempLine = strings.ReplaceAll(tempLine, varFunc, "")
 			}
-			// Remove numbers and spaces
-			for _, varD := range varsD {
-				tempLine = strings.ReplaceAll(tempLine, varD, "")
-				line.UnitsParsedText = strings.ReplaceAll(line.UnitsParsedText, varD, "")
-			}
+			// Remove numbers
+			tempLine = reAloneNumbers.ReplaceAllString(tempLine, "")
+			// TODO: Remove spaces
+			tempLine = strings.ReplaceAll(tempLine, " ", "")
 			// Replace operator symbols with  "&"
 			for _, varR := range varsR {
 				tempLine = strings.ReplaceAll(tempLine, varR, "&")
