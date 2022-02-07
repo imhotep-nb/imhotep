@@ -25,6 +25,7 @@ func main() {
 		}
 		solution, errSol := solveProblem(*input)
 		if errSol != nil {
+			solution.Info.Errors = []string{errSol.Error()}
 			return c.JSON(solution)
 		}
 		return c.JSON(solution)
