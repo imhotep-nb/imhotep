@@ -13,7 +13,8 @@ import (
 )
 
 func ParseText(input types.APIInput, Vars *[]*types.Variable,
-	Eqns *[]*types.Equation, Settings *types.SolverSettings) (bool, error) {
+	Eqns *[]*types.Equation, Settings *types.SolverSettings,
+	onlyVars bool) (bool, error) {
 	/*
 	   This function parse a file text string to a eqns and vars structs
 	   If no error, the boolean param is the APIInput.Debug setting
@@ -140,6 +141,15 @@ func ParseText(input types.APIInput, Vars *[]*types.Variable,
 		return false, err
 	}
 
+	if onlyVars {
+		// Generate dummy Vars (only for names)
+		for _, varsS_ := range varsS {
+			newVar := types.Variable{Name: varsS_}
+			*Vars = append(*Vars, &newVar)
+		}
+		return input.Debug, nil
+	}
+
 	// For generate variable structs:
 	varsIndexByName := make(map[string]int)
 	for i, varJSON := range input.Variables {
@@ -173,7 +183,7 @@ func ParseText(input types.APIInput, Vars *[]*types.Variable,
 			log.Printf("Error in variable creation %v: %v", varJSON.Name, err)
 			// &Vars = *[]*types.Variable{}
 			// &Eqns = *[]*types.Equation{}
-			return false, nil
+			return false, err
 		}
 		*Vars = append(*Vars, newVar)
 		// Assign the index to the variable name

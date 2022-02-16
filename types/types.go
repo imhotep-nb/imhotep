@@ -54,7 +54,8 @@ type SolverSettings struct {
 	FuncEvaluations int `json:"funcEvaluations"`
 	GradEvaluations int `json:"gradEvaluations"`
 	// HessEvaluations
-	Concurrent int `json:"concurrent"`
+	Concurrent int  `json:"concurrent"`
+	OnlyVars   bool `json:"onlyvars"`
 }
 
 type Info struct {
