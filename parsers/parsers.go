@@ -266,42 +266,39 @@ func MakeVars(varsS []string, Vars *[]*types.Variable,
 		}
 	} else {
 		// For generate variable structs:
-		for i, varJSON := range inputVariables {
+		for i, varSName := range varsS {
+			// for i, varJSON := range inputVariables {
 
-			// validate if the varJSON exits in the identified variables in the equations (varsS)
-			var existVar = false
-			for _, varS := range varsS {
-				if varS == varJSON.Name {
-					existVar = true
+			log.Printf("The variable %v has index %v\n", varSName, i)
+			// validate if the varS is already define in the varJSON to use its parámeters
+
+			var guess, upperlim, lowerlim *float64
+			var comment, unit *string
+
+			for _, varJSON := range inputVariables {
+				if varSName == varJSON.Name {
+					*guess = varJSON.Guess
+					*lowerlim = varJSON.Lowerlim
+					*upperlim = varJSON.Upperlim
+					*comment = varJSON.Comment
+					*unit = varJSON.Unit
 					break
 				}
 			}
 
-			if !existVar {
-				err := errors.New("variables in JSON mismatch with variables in equations")
-				// TODO give variables names from JSON and from equations
-				log.Printf("%v", err)
-				log.Printf("Variables varsS: %v, Variables varJSON: %v\n", varsS, varJSON)
-				return varsIndexByName, err
-			}
+			newVar, err := constructors.NewVariable(varSName, uint16(i), guess,
+				upperlim, lowerlim, comment, unit)
 
-			guess := varJSON.Guess
-			lowerlim := varJSON.Lowerlim
-			upperlim := varJSON.Upperlim
-			comment := varJSON.Comment
-			unit := varJSON.Unit
-			log.Printf("The variable %v has index %v\n", varJSON.Name, i)
-			newVar, err := constructors.NewVariable(varJSON.Name, uint16(i), &guess,
-				&upperlim, &lowerlim, &comment, &unit)
 			if err != nil {
-				log.Printf("Error in variable creation %v: %v", varJSON.Name, err)
+				log.Printf("Error in variable creation %v: %v", varSName, err)
 				// &Vars = *[]*types.Variable{}
 				// &Eqns = *[]*types.Equation{}
 				return varsIndexByName, err
 			}
+
 			*Vars = append(*Vars, newVar)
 			// Assign the index to the variable name
-			varsIndexByName[varJSON.Name] = i
+			varsIndexByName[varSName] = i
 		}
 	}
 
