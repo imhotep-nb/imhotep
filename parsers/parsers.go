@@ -23,6 +23,10 @@ func ParseText(input types.APIInput, Vars *[]*types.Variable,
 	log.Printf("Debug: %v", input.Debug)
 
 	*Settings = input.Settings
+	// Defaults values when user input doesn't have settings data0.
+	if Settings.GradientThreshold == 0 {
+		Settings.GradientThreshold = 0.0001
+	}
 
 	// It need replace explicit units with conversion factors in SI
 	// so concatenate eqn to replace the whole units at the same time.
