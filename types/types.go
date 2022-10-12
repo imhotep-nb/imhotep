@@ -20,6 +20,17 @@ type APIInput struct {
 	Debug     bool           `json:"debug"`
 }
 
+type TestInputEquations []struct {
+	/*
+		Parse single equations to create APIinput ant test it compare with
+		the knowing solution in Result
+	*/
+	Name            string         `json:"name"`
+	Equations       []string       `json:"eqns"`
+	Variables       []VariableJSON `json:"vars"`
+	VariablesSolved []VariableJSON `json:"varsSolved"`
+}
+
 type EquationJSON struct {
 	/*
 		Parse equations data from API in JSON format
@@ -80,11 +91,11 @@ type APIOutput struct {
 	/*
 		Struct for output of API
 	*/
-	Eqns     []EquationJSON
-	Vars     []VariableJSON
-	Settings SolverSettings
-	Stats    Stats
-	Info     Info
+	Eqns     []EquationJSON `json:"eqns"`
+	Vars     []VariableJSON `json:"vars"`
+	Settings SolverSettings `json:"settings"`
+	Stats    Stats          `json:"stats"`
+	Info     Info           `json:"info"`
 }
 
 type Variable struct {

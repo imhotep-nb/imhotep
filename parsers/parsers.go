@@ -281,11 +281,11 @@ func MakeVars(varsS []string, Vars *[]*types.Variable,
 
 			for _, varJSON := range inputVariables {
 				if varSName == varJSON.Name {
-					*guess = varJSON.Guess
-					*lowerlim = varJSON.Lowerlim
-					*upperlim = varJSON.Upperlim
-					*comment = varJSON.Comment
-					*unit = varJSON.Unit
+					guess = &varJSON.Guess
+					lowerlim = &varJSON.Lowerlim
+					upperlim = &varJSON.Upperlim
+					comment = &varJSON.Comment
+					unit = &varJSON.Unit
 					break
 				}
 			}
