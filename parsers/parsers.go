@@ -4,7 +4,7 @@ import (
 	"errors"
 	"imhotep/constructors"
 	"imhotep/types"
-	"log"
+	"imhotep/utils"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,14 +14,12 @@ import (
 
 func ParseText(input types.APIInput, Vars *[]*types.Variable,
 	Eqns *[]*types.Equation, Settings *types.SolverSettings,
-	onlyVars bool) (bool, error) {
+	onlyVars bool, logger *[]string) (bool, error) {
 	/*
 	   This function parse a file text string to a eqns and vars structs
 	   If no error, the boolean param is the APIInput.Debug setting
 	*/
-
-	log.Printf("Debug: %v", input.Debug)
-
+	utils.HandleLog(logger, "Debug: %v", input.Debug)
 	*Settings = input.Settings
 	// Defaults values when user input doesn't have settings data0.
 	if Settings.GradientThreshold == 0 {
@@ -46,11 +44,11 @@ func ParseText(input types.APIInput, Vars *[]*types.Variable,
 	}
 
 	// Replace explicit units with conversion factors to SI
-	concatEqnsParsed, err := ParseExplicitUnits(concatEqns)
+	concatEqnsParsed, err := ParseExplicitUnits(concatEqns, logger)
 	var unitsParsedTexts []string
 	var funcStrings []string
 	if err != nil {
-		log.Printf("Can't parse units: %v\n", err)
+		utils.HandleLog(logger, "Can't parse units: %v\n", err)
 		return false, err
 	} else {
 		// Find functions to avoid it when identify variables
@@ -58,7 +56,7 @@ func ParseText(input types.APIInput, Vars *[]*types.Variable,
 		funcRegex := regexp.MustCompile(`[a-zA-Z0-9]+[\(]`)
 		funcStrings = funcRegex.FindAllString(concatEqnsParsed, -1)
 		unitsParsedTexts = strings.Split(concatEqnsParsed, eqnSeparator)
-		log.Printf("Functions founded: %v\n", funcStrings)
+		utils.HandleLog(logger, "Functions founded: %v\n", funcStrings)
 	}
 
 	for i, line := range unitsParsedTexts {
@@ -70,23 +68,23 @@ func ParseText(input types.APIInput, Vars *[]*types.Variable,
 	*Eqns = []*types.Equation{}
 
 	// Identify vars text in equations
-	varsS, varsInEqns, errVars := IdentifyVars(input.Equations, funcStrings)
+	varsS, varsInEqns, errVars := IdentifyVars(input.Equations, funcStrings, logger)
 	if errVars != nil {
-		log.Printf("Fail to identify vars: %v\n", errVars)
+		utils.HandleLog(logger, "Fail to identify vars: %v\n", errVars)
 	}
 
 	if len(varsS) != nEqns {
 		err := errors.New("mismatch number equations with variables")
 		// TODO give variables and equations numbers
-		log.Printf("%v", err)
-		log.Printf("Variables: %v", varsS)
-		log.Printf("Equations Number: %v", nEqns)
+		utils.HandleLog(logger, "%v", err)
+		utils.HandleLog(logger, "Variables: %v", varsS)
+		utils.HandleLog(logger, "Equations Number: %v", nEqns)
 		return false, err
 	}
 
-	varsIndexByName, errVars := MakeVars(varsS, Vars, input.Variables, onlyVars)
+	varsIndexByName, errVars := MakeVars(varsS, Vars, input.Variables, onlyVars, logger)
 	if errVars != nil {
-		log.Printf("Fail to created vars: %v\n", errVars)
+		utils.HandleLog(logger, "Fail to created vars: %v\n", errVars)
 	} else if onlyVars {
 		return true, nil
 	}
@@ -94,7 +92,7 @@ func ParseText(input types.APIInput, Vars *[]*types.Variable,
 	// For every line,create a equation
 	for i, line := range input.Equations {
 		if line.UnitsParsedText != "" {
-			log.Printf("The equation is: %v ", line.UnitsParsedText)
+			utils.HandleLog(logger, "The equation is: %v ", line.UnitsParsedText)
 
 			// parse the variable Name with the variable index
 			varsIndexInEqn_i := make([]int, len(varsInEqns[i])) // index of each variable
@@ -102,11 +100,11 @@ func ParseText(input types.APIInput, Vars *[]*types.Variable,
 				varsIndexInEqn_i[j] = varsIndexByName[nameVar]
 			}
 
-			log.Printf("and the indices are %v\n", varsIndexInEqn_i)
+			utils.HandleLog(logger, "and the indices are %v\n", varsIndexInEqn_i)
 			newEq, err2 := constructors.NewEquation(line.UnitsParsedText, *Vars,
 				uint16(i), uint16(line.Line), varsIndexInEqn_i)
 			if err2 != nil {
-				log.Printf("%v", err2)
+				utils.HandleLog(logger, "%v", err2)
 				return false, err2
 			}
 			*Eqns = append(*Eqns, newEq)
@@ -115,7 +113,7 @@ func ParseText(input types.APIInput, Vars *[]*types.Variable,
 	return input.Debug, nil
 }
 
-func ParseExplicitUnits(eqnText string) (string, error) {
+func ParseExplicitUnits(eqnText string, logger *[]string) (string, error) {
 	/*
 	   This function parse a string (like a equation string)  using a regex to identify
 	   all explicit units, after that use quantity symbol parse to convert the unit to SI
@@ -145,7 +143,7 @@ func ParseExplicitUnits(eqnText string) (string, error) {
 			unitIdentify, err := quantity.ParseSymbol(unitClear)
 
 			if err != nil {
-				log.Printf("The unit %v can't be identify: %v\n", unitText, err)
+				utils.HandleLog(logger, "The unit %v can't be identify: %v\n", unitText, err)
 				return "", err
 
 			} else {
@@ -161,13 +159,13 @@ func ParseExplicitUnits(eqnText string) (string, error) {
 		}
 	}
 
-	log.Printf("Equation with units parsed: %v", newEqnText)
+	utils.HandleLog(logger, "Equation with units parsed: %v", newEqnText)
 
 	return newEqnText, nil
 
 }
 
-func IdentifyVars(inputEquations []types.EquationJSON, funcStrings []string) ([]string, map[int][]string, error) {
+func IdentifyVars(inputEquations []types.EquationJSON, funcStrings []string, logger *[]string) ([]string, map[int][]string, error) {
 	/*
 	   This function identify variables in the inputEquations and return it
 	   like an array of strings, where each item is a variable found. Also
@@ -215,12 +213,12 @@ func IdentifyVars(inputEquations []types.EquationJSON, funcStrings []string) ([]
 				tempLine = strings.ReplaceAll(tempLine, varR, "&")
 			}
 			// Split "&", but use FieldsFunc instead, to avoid empty values in slice
-			log.Printf("The string for splitting is: %v", tempLine)
+			utils.HandleLog(logger, "The string for splitting is: %v", tempLine)
 			f := func(c rune) bool {
 				return c == '&'
 			}
 			varsT := strings.FieldsFunc(tempLine, f)
-			log.Printf("Load a variables list in string format: %v. Length of: %v", varsT, len(varsT))
+			utils.HandleLog(logger, "Load a variables list in string format: %v. Length of: %v", varsT, len(varsT))
 			// Evaluate availability
 			for _, varT := range varsT {
 				if varT != " " && varT != "" {
@@ -248,7 +246,7 @@ func IdentifyVars(inputEquations []types.EquationJSON, funcStrings []string) ([]
 }
 
 func MakeVars(varsS []string, Vars *[]*types.Variable,
-	inputVariables []types.VariableJSON, onlyVars bool) (map[string]int, error) {
+	inputVariables []types.VariableJSON, onlyVars bool, logger *[]string) (map[string]int, error) {
 	/*
 		This functions create the vars struct from the name vars string array
 		identify on IdentifyVars().
@@ -273,7 +271,7 @@ func MakeVars(varsS []string, Vars *[]*types.Variable,
 		for i, varSName := range varsS {
 			// for i, varJSON := range inputVariables {
 
-			log.Printf("The variable %v has index %v\n", varSName, i)
+			utils.HandleLog(logger, "The variable %v has index %v\n", varSName, i)
 			// validate if the varS is already define in the varJSON to use its parámeters
 
 			var guess, upperlim, lowerlim *float64
@@ -294,7 +292,7 @@ func MakeVars(varsS []string, Vars *[]*types.Variable,
 				upperlim, lowerlim, comment, unit)
 
 			if err != nil {
-				log.Printf("Error in variable creation %v: %v", varSName, err)
+				utils.HandleLog(logger, "Error in variable creation %v: %v", varSName, err)
 				// &Vars = *[]*types.Variable{}
 				// &Eqns = *[]*types.Equation{}
 				return varsIndexByName, err

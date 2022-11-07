@@ -4,6 +4,7 @@ import (
 	"imhotep/parsers"
 	"imhotep/solver"
 	"imhotep/types"
+	"imhotep/utils"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -14,6 +15,7 @@ func main() {
 
 	app.Post("/vars", func(c *fiber.Ctx) error {
 		input := new(types.APIInput)
+		var logger []string
 		err := c.BodyParser(input)
 		if err != nil {
 			out := types.APIOutput{
@@ -21,9 +23,15 @@ func main() {
 					Errors: []string{err.Error()},
 				},
 			}
+			if input.Debug {
+				out.Info.Logs = logger
+			}
 			return c.JSON(out)
 		}
-		out, errSol := solveProblem(*input, true)
+		out, errSol := solveProblem(*input, true, &logger)
+		if input.Debug {
+			out.Info.Logs = logger
+		}
 		if errSol != nil {
 			out.Info.Errors = []string{errSol.Error()}
 			return c.JSON(out)
@@ -34,6 +42,7 @@ func main() {
 
 	app.Post("/solve", func(c *fiber.Ctx) error {
 		input := new(types.APIInput)
+		var logger []string
 		err := c.BodyParser(input)
 		if err != nil {
 			out := types.APIOutput{
@@ -41,9 +50,15 @@ func main() {
 					Errors: []string{err.Error()},
 				},
 			}
+			if input.Debug {
+				out.Info.Logs = logger
+			}
 			return c.JSON(out)
 		}
-		solution, errSol := solveProblem(*input, false)
+		solution, errSol := solveProblem(*input, false, &logger)
+		if input.Debug {
+			solution.Info.Logs = logger
+		}
 		if errSol != nil {
 			solution.Info.Errors = []string{errSol.Error()}
 			return c.JSON(solution)
@@ -54,13 +69,13 @@ func main() {
 
 }
 
-func solveProblem(input types.APIInput, onlyVars bool) (types.APIOutput, error) {
+func solveProblem(input types.APIInput, onlyVars bool, logger *[]string) (types.APIOutput, error) {
 	Vars := []*types.Variable{}
 	Eqns := []*types.Equation{}
 	Settings := types.SolverSettings{}
-	debug, err := parsers.ParseText(input, &Vars, &Eqns, &Settings, onlyVars)
+	debug, err := parsers.ParseText(input, &Vars, &Eqns, &Settings, onlyVars, logger)
 	if err != nil {
-		log.Printf("Something fails: %v", err)
+		utils.HandleLog(logger, "Something fails: %v", err)
 		out := types.APIOutput{
 			Info: types.Info{
 				Errors: []string{err.Error()},
@@ -78,9 +93,9 @@ func solveProblem(input types.APIInput, onlyVars bool) (types.APIOutput, error) 
 		}
 		return out, nil
 	}
-	solution, errSol := solver.Solver(Vars, Eqns, Settings, debug)
+	solution, errSol := solver.Solver(Vars, Eqns, Settings, debug, logger)
 	if errSol != nil {
-		log.Print(errSol.Error())
+		utils.HandleLog(logger, errSol.Error())
 		return solution, errSol
 	}
 	log.Print(solution)

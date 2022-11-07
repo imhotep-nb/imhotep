@@ -3,7 +3,7 @@ package solver
 import (
 	"errors"
 	"imhotep/types"
-	"log"
+	"imhotep/utils"
 	"math"
 	"time"
 
@@ -13,7 +13,7 @@ import (
 )
 
 func Solver(Vars []*types.Variable, Eqns []*types.Equation,
-	settingsSolver types.SolverSettings, debug bool) (types.APIOutput, error) {
+	settingsSolver types.SolverSettings, debug bool, logger *[]string) (types.APIOutput, error) {
 	/*
 		Split the equations into groups of small equations
 		called blocks, that could be solved in order saving
@@ -26,15 +26,15 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 
 	adjacencyMatrix, errAdj := MakeAdjacencyMatrix(Eqns)
 	if errAdj != nil {
-		log.Print(errAdj.Error())
+		utils.HandleLog(logger, errAdj.Error())
 		return types.APIOutput{}, errAdj
 	}
-	blocksEqnIndex, blocksEqnIndexInv, _, errBlocks := MakeEquationBlocks(Eqns, adjacencyMatrix)
+	blocksEqnIndex, blocksEqnIndexInv, _, errBlocks := MakeEquationBlocks(Eqns, adjacencyMatrix, logger)
 	if errBlocks != nil {
-		log.Print(errBlocks.Error())
+		utils.HandleLog(logger, errBlocks.Error())
 		return types.APIOutput{}, errBlocks
 	}
-	log.Printf("Los bloques: %v", blocksEqnIndex)
+	utils.HandleLog(logger, "Los bloques: %v", blocksEqnIndex)
 
 	// Create block equations from types
 	blocks := make([]types.BlockEquations, len(blocksEqnIndex))
@@ -69,26 +69,26 @@ func Solver(Vars []*types.Variable, Eqns []*types.Equation,
 	// In this section, the blocks will be solved
 
 	for i, block := range blocks {
-		result, errS := SolverBlock(block, settingsSolver)
-		log.Print("------------------------------------------------------------------")
-		log.Printf("Este es el bloque número %v", i)
+		result, errS := SolverBlock(block, settingsSolver, logger)
+		utils.HandleLog(logger, "------------------------------------------------------------------")
+		utils.HandleLog(logger, "Este es el bloque número %v", i)
 		if errS != nil {
-			log.Printf("Block fails: %v", errS)
-			log.Printf("The equations: %v", *block.Equations[0])
+			utils.HandleLog(logger, "Block fails: %v", errS)
+			utils.HandleLog(logger, "The equations: %v", *block.Equations[0])
 			return types.APIOutput{}, errS
 		} else {
 			blocks[i].Result = optimize.Result{
 				Stats:  result.Stats,
 				Status: result.Status,
 			}
-			log.Printf("result.Status: %v\n", result.Status)
-			log.Printf("result.X: %0.4g\n", result.X)
-			log.Printf("result.F: %0.4g\n", result.F)
-			log.Printf("Time: %v microseconds\n", result.Runtime.Microseconds())
-			log.Printf("result.Stats.FuncEvaluations: %d\n", result.Stats.FuncEvaluations)
+			utils.HandleLog(logger, "result.Status: %v\n", result.Status)
+			utils.HandleLog(logger, "result.X: %0.4g\n", result.X)
+			utils.HandleLog(logger, "result.F: %0.4g\n", result.F)
+			utils.HandleLog(logger, "Time: %v microseconds\n", result.Runtime.Microseconds())
+			utils.HandleLog(logger, "result.Stats.FuncEvaluations: %d\n", result.Stats.FuncEvaluations)
 
 			for _, varS := range Vars {
-				log.Printf("[%v] %v = %v\n", varS.Solved, varS.Name, varS.Guess)
+				utils.HandleLog(logger, "[%v] %v = %v\n", varS.Solved, varS.Name, varS.Guess)
 			}
 		}
 	}
@@ -153,15 +153,15 @@ func MakeAdjacencyMatrix(Eqns []*types.Equation) ([][]int, error) {
 	return adjacencyMatrix, nil
 }
 
-func MakeEquationBlocks(Eqns []*types.Equation, adjacencyMatrix [][]int) ([][]interface{}, map[int]int, map[interface{}][]interface{}, error) {
+func MakeEquationBlocks(Eqns []*types.Equation, adjacencyMatrix [][]int, logger *[]string) ([][]interface{}, map[int]int, map[interface{}][]interface{}, error) {
 	// Convert adjacency Matrix into pseudographe
-	_, reOrderEqn, errM := ConvertFullPseudograph(adjacencyMatrix)
+	_, reOrderEqn, errM := ConvertFullPseudograph(adjacencyMatrix, logger)
 
 	if errM != nil {
-		log.Print(errM.Error())
+		utils.HandleLog(logger, errM.Error())
 		return nil, nil, nil, errM
 	}
-	log.Printf("Re order de equations: %v\n", reOrderEqn)
+	utils.HandleLog(logger, "Re order de equations: %v\n", reOrderEqn)
 	// Create the graph struct to the input of tarjan's package
 	graph := make(map[interface{}][]interface{})
 	reOrderEqnInv := make(map[int]int)
@@ -175,14 +175,14 @@ func MakeEquationBlocks(Eqns []*types.Equation, adjacencyMatrix [][]int) ([][]in
 		reOrderEqnInv[reOrderEqn[i]] = i
 	}
 
-	log.Printf("Graph to tarjan: %v\n", graph)
+	utils.HandleLog(logger, "Graph to tarjan: %v\n", graph)
 	output := tarjan.Connections(graph)
-	log.Printf("Blocks equations: %v\n", output)
+	utils.HandleLog(logger, "Blocks equations: %v\n", output)
 	return output, reOrderEqnInv, graph, nil
 }
 
 func SolverBlock(blockEqn types.BlockEquations,
-	settingsSolver types.SolverSettings) (*optimize.Result, error) {
+	settingsSolver types.SolverSettings, logger *[]string) (*optimize.Result, error) {
 	/*
 		Solve one block from system equations using optimize.Minimize
 		and the method specified for user in settings
@@ -210,7 +210,7 @@ func SolverBlock(blockEqn types.BlockEquations,
 			out, err := eqnBlock.RunProgram()
 			if err != nil {
 				// TODO: Handle errors here
-				log.Printf("Error on equation %v : %v\n",
+				utils.HandleLog(logger, "Error on equation %v : %v\n",
 					eqnBlock.Text, err)
 				return math.NaN()
 			}
@@ -237,11 +237,11 @@ func SolverBlock(blockEqn types.BlockEquations,
 	}
 	result, err := optimize.Minimize(problem, X, &settings, nil)
 	if err != nil {
-		log.Printf("Minimize fails: %v \n", err)
+		utils.HandleLog(logger, "Minimize fails: %v \n", err)
 		return nil, err
 
 	} else if err = result.Status.Err(); err != nil {
-		log.Printf("Status fails: %v \n", err)
+		utils.HandleLog(logger, "Status fails: %v \n", err)
 		return nil, err
 
 	} else {
@@ -260,7 +260,7 @@ func SolverBlock(blockEqn types.BlockEquations,
 	}
 }
 
-func ConvertFullPseudograph(adjacencyMatrix [][]int) ([][]int, map[int]int, error) {
+func ConvertFullPseudograph(adjacencyMatrix [][]int, logger *[]string) ([][]int, map[int]int, error) {
 	/*
 		Re order the adjacency matrix (the graphe representation of the equations system)
 		in a full pseudograph if it is possible (here we call A FULL pseudograp, that one
@@ -337,7 +337,7 @@ func ConvertFullPseudograph(adjacencyMatrix [][]int) ([][]int, map[int]int, erro
 				// check that any acumulative sum is zero at the end
 				if i == currentLastRow && sumCols[j] == 0 {
 					err := errors.New("fails to reorder the adjacency matrix to assign a eqn to a variable")
-					log.Printf(" index variable %v can't be assign to any eqn: %v\n", i, err)
+					utils.HandleLog(logger, " index variable %v can't be assign to any eqn: %v\n", i, err)
 					return [][]int{}, map[int]int{}, err
 				}
 
@@ -353,7 +353,7 @@ func ConvertFullPseudograph(adjacencyMatrix [][]int) ([][]int, map[int]int, erro
 			// check that any acumulative sum is zero at the end
 			if i == currentLastRow && sumRows[i] == 0 {
 				err := errors.New("fails to reorder the adjacency matrix to assign a eqn to a variable")
-				log.Printf(" index eqn %v can't be assign to any variable: %v\n", i, err)
+				utils.HandleLog(logger, " index eqn %v can't be assign to any variable: %v\n", i, err)
 				return [][]int{}, map[int]int{}, err
 			}
 
@@ -407,11 +407,11 @@ func ConvertFullPseudograph(adjacencyMatrix [][]int) ([][]int, map[int]int, erro
 				break
 			}
 		}
-		log.Printf("iter %v : %v (%v, %v) minRow and %v (%v, %v) minCol, pairing %v  -> %v",
+		utils.HandleLog(logger, "iter %v : %v (%v, %v) minRow and %v (%v, %v) minCol, pairing %v  -> %v",
 			iter, minSumRows.Val, minSumRows.Row, minSumRows.Col, minSumCols.Val, minSumCols.Row,
 			minSumCols.Col, minToAdd.Row, minToAdd.Col)
 	}
-	log.Printf("Convert full pseudograph take %v for loops\n", contadorFors)
+	utils.HandleLog(logger, "Convert full pseudograph take %v for loops\n", contadorFors)
 
 	return pseudograph, reOrderEqn, nil
 }
